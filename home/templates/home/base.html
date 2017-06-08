@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="{% static 'home/css/style.css' %}" type="text/css">
 
     {% block head %}
-        <title>Base</title>
+        <title>LNA</title>
     {% endblock %}
 </head>
 <body>
@@ -35,20 +35,20 @@
               {% if user.is_authenticated %}
                 <ul class="nav navbar-nav">
                     <li><a href="{% url 'home:home' %}">Home</a></li>
-                    <li><a href="{% url '' %}">Profile</a></li>
-                    <li><a href="{% url '' %}">Edit Profile</a></li>
-                    <li><a href="{% url '' %}">Change Password</a></li>
+                    <li><a href="{% url 'home:home' %}">Profile</a></li>
+                    <li><a href="{% url 'home:home' %}">Edit Profile</a></li>
+                    <li><a href="{% url 'home:home' %}">Change Password</a></li>
 
                 </ul>
                   <ul class="nav navbar-right navbar-nav">
-                      <li><a href="{% url '' %}">Logout</a></li>
+                      <li><a href="{% url 'account_logout' %}">Logout</a></li>
                   </ul>
                 {% else %}
                   <ul class="nav navbar-nav">
-                    <li><a href="{% url '' %}">Reset Password</a></li>
+                    <li><a href="{% url 'home:home' %}">Reset1 Password</a></li>
                   </ul>
                 <ul class="nav navbar-nav navbar-right">
-                    <li><a href="">Login</a></li>
+                    <li><a href="{% url 'account_login' %}">Login</a></li>
                     <li><a href="">Register</a></li>
                 </ul>
               {% endif %}
@@ -59,7 +59,7 @@
 
       <!-- Main component for a primary marketing message or call to action -->
       <div class="container">
-        {% block body %}
+        {% block content %}
             <h1>Base</h1>
         {% endblock %}
 
