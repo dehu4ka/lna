@@ -25,5 +25,33 @@
             </label>
         </div>
         <button type="submit" class="btn btn-primary">Загрузить</button>
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#csv_help_modal">Помощь</button>
     </form>
+{% endblock %}
+
+{% block modal %}
+    <!-- Modal -->
+<div class="modal fade bd-example-modal-lg" id="csv_help_modal" tabindex="-1" role="dialog" aria-labelledby="csv_help_modal" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModal">Пример форматирования CSV-файла</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Якобы файл автоматически выгружается из Аргуса</p>
+          <p>Пример:</p>
+          <pre>ФЭС;Регион;Логич.устройство;IP;Основная услуга;Адрес;Клиент;Квартира;IPTV;ШПД;Порты xDSL(слот);Номер порта;
+Ямало-Ненецкий;Ямало-Ненецкий АО, Губкинский г.;89-GBKNSK-EDG101-DSL-1[10.205.0.164];;(34936)30005;мкр 3-й, 23;Леготина М. С.;1;IP-TV Smart TUBE089004932;СПД893623347;Порты ADSL2+_AnnexA - 6;42
+Ямало-Ненецкий;Ямало-Ненецкий АО, Губкинский г.;89-GBKNSK-EDG101-DSL-1[10.205.0.164];10.205.0.164;(34936)30019;мкр 3-й, 1;Акционерное общество "Всероссийский банк развития регионов";-;;;Порты ADSL2+_AnnexA - 6;47
+Ямало-Ненецкий;Ямало-Ненецкий АО, Губкинский г.;89-GBKNSK-EDG101-DSL-1[10.205.0.164];10.205.0.164;(34936)30029;ул 3 Панель, 0;ООО "Спецстрой";;;СПД893638563</pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-danger" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

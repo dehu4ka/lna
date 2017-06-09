@@ -24,6 +24,8 @@ def parse_iptv_login(raw_login):
     :param raw_login: IP-TV Smart TUBE089004932
     :return: 77089004932
     """
+    if raw_login == '':
+        return ''
     return '77'+raw_login[16:]
 
 

@@ -58,6 +58,7 @@ LOCAL_APPS = [
     'lna.users.apps.UsersConfig',
     # Your stuff: custom apps go here
     'argus',
+    'lna',
 ]
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
