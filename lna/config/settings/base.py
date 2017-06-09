@@ -56,10 +56,12 @@ LOCAL_APPS = [
     # custom users app
     'lna.users.apps.UsersConfig',
     # Your stuff: custom apps go here
+    'argus',
 ]
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
 
 # MIDDLEWARE CONFIGURATION
 # ------------------------------------------------------------------------------
@@ -111,7 +113,6 @@ MANAGERS = ADMINS
 DATABASES = {
     'default': env.db('DATABASE_URL', default='postgres:///lna'),
 }
-print(DATABASES)
 DATABASES['default']['ATOMIC_REQUESTS'] = True
 
 
@@ -281,3 +282,4 @@ ADMIN_URL = r'^admin/'
 
 # Your common stuff: Below this line define 3rd party library settings
 # ------------------------------------------------------------------------------
+ALLOWED_HOSTS = ['10.179.9.55', '127.0.0.1', 'localhost']

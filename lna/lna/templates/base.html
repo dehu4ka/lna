@@ -1,4 +1,4 @@
-{% load staticfiles i18n %}<!DOCTYPE html>
+{% load staticfiles i18n %}{% load argus.tags %}<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -18,10 +18,10 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
 
     <!-- Your stuff: Third-party CSS libraries go here -->
-    
+
     <!-- This file stores project-specific CSS -->
     <link href="{% static 'css/project.css' %}" rel="stylesheet">
-    
+
     {% endblock %}
 
   </head>
@@ -33,33 +33,45 @@
         <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <a class="navbar-brand" href="{% url 'home' %}">lna</a>
+        <a class="navbar-brand" href="{% url 'home' %}">LNA</a>
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
+            <li class="nav-item {% active_url 'home' %}">
               <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item {% active_url 'about' %}">
               <a class="nav-link" href="{% url 'about' %}">About</a>
             </li>
+              {% if request.user.is_authenticated %}
+                  <li class="nav-item dropdown">
+                      <a class="nav-link dropdown-toggle" href="#" id="navbarArgusDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Аргус</a>
+                      <div class="dropdown-menu" aria-labelledby="navbarArgusDropdown">
+                          <a class="dropdown-item {% active_url 'argus:adsl' %}" href="{% url 'argus:adsl' %}">ADSL</a>
+                          <a class="dropdown-item" href="#">FTTx</a>
+                          <a class="dropdown-item" href="#">GPON</a>
+                      </div>
+                  </li>
+              {% endif %}
+          </ul>
+          <ul class="navbar-nav masthead">
             {% if request.user.is_authenticated %}
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'users:detail' request.user.username  %}">{% trans "My Profile" %}</a>
+                <a class="nav-link {% active_url 'users:detail' %}" href="{% url 'users:detail' request.user.username  %}">{% trans "My Profile" %}</a>
               </li>
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'account_logout' %}">{% trans "Sign Out" %}</a>
+                <a class="nav-link {% active_url 'account_logout' %}" href="{% url 'account_logout' %}">{% trans "Sign Out" %}</a>
               </li>
             {% else %}
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
-                <a id="sign-up-link" class="nav-link" href="{% url 'account_signup' %}">{% trans "Sign Up" %}</a>
+                <a id="sign-up-link" class="nav-link {% active_url 'account_signup' %}" href="{% url 'account_signup' %}">{% trans "Sign Up" %}</a>
               </li>
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
-                <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
+                <a id="log-in-link" class="nav-link {% active_url 'account_login' %}" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>
               </li>
             {% endif %}
           </ul>
@@ -96,11 +108,11 @@
       <!-- Your stuff: Third-party javascript libraries go here -->
 
       <!-- place project specific Javascript in this file -->
-      
+
       <script src="{% static 'js/project.js' %}"></script>
-      
+
 
     {% endblock javascript %}
   </body>
 </html>
- 
+
