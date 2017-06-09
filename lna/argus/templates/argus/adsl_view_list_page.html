@@ -1,0 +1,37 @@
+{% load el_pagination_tags %}
+<table class="table">
+    <thead>
+    <tr>
+        <th>Город</th>
+        <th>Улица, дом</th>
+        <th>Квартира</th>
+        <th>Основное устройство (телефон)</th>
+        <th>Ф.И.О.</th>
+        <th>Internet</th>
+        <th>IPTV</th>
+        <th>Наименование оборудования</th>
+        <th>IP</th>
+        <th>Слот</th>
+        <th>Порт</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% paginate argus_list %}
+        {% for port in argus_list %}
+            <tr>
+                <td>{{ port.city }}</td>
+                <td>{{ port.address }}</td>
+                <td>{{ port.room }}</td>
+                <td>{{ port.tel_num }}</td>
+                <td>{{ port.fio }}</td>
+                <td>{{ port.inet_login }}</td>
+                <td>{{ port.iptv_login }}</td>
+                <td>{{ port.hostname }}</td>
+                <td>{{ port.ne_ip }}</td>
+                <td>{{ port.xdsl_slot }}</td>
+                <td>{{ port.xdsl_port }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+    {% show_more %}

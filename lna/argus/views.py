@@ -7,7 +7,8 @@ from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.shortcuts import render, HttpResponse, redirect
-
+from el_pagination.views import AjaxListView
+from .models import ArgusADSL
 
 
 # Create your views here.
@@ -49,3 +50,11 @@ class ADSL_Import(LoginRequiredMixin, TemplateView):
         args = {'form' : form }
         return render(request, self.template_name, args)
 
+
+class ADSL_View(AjaxListView):
+    context_object_name = 'argus_list'
+    template_name = 'argus/adsl_view.html'
+    page_template = 'argus/adsl_view_list_page.html'
+
+    def get_queryset(self):
+        return ArgusADSL.objects.all()

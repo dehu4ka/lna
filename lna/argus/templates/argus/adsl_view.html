@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Данные по ADSL-портам{% endblock %}
+
+{% block content %}
+    <h2>Ports:</h2>
+    {% include page_template %}
+{% endblock %}
+
+{% block javascript %}
+    {{ block.super }}
+    <script src="{{ STATIC_URL }}el-pagination/js/el-pagination.js"></script>
+    <script>
+        $.endlessPaginate({
+            paginateOnScroll: true,
+            paginateOnScrollChunkSize: 5
+        });
+    </script>
+{% endblock %}
