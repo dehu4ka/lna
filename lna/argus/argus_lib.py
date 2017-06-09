@@ -14,3 +14,10 @@ def parse_adsl_csv(filename):
             print(row)
             break
     pass
+
+
+def parse_gpon_csv(filename):
+    pass
+
+def parse_fttx_csv(filename):
+    pass
