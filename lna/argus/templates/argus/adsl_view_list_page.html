@@ -2,14 +2,14 @@
 <table class="table table-striped table-bordered table-hover table-sm">
     <thead>
     <tr>
+        <th>Internet</th>
+        <th>IPTV</th>
         <th>Город</th>
         <th>Улица, дом</th>
         <th>Квартира</th>
-        <th>Основное устройство (телефон)</th>
+        <th>Телефон</th>
         <th>Ф.И.О.</th>
-        <th>Internet</th>
-        <th>IPTV</th>
-        <th>Наименование оборудования</th>
+        <th>NE</th>
         <th>IP</th>
         <th>Слот</th>
         <th>Порт</th>
@@ -19,13 +19,13 @@
     {% paginate argus_list %}
         {% for port in argus_list %}
             <tr>
+                <td>{{ port.inet_login }}</td>
+                <td>{{ port.iptv_login }}</td>
                 <td>{{ port.city }}</td>
                 <td>{{ port.address }}</td>
                 <td>{{ port.room }}</td>
                 <td>{{ port.tel_num }}</td>
                 <td>{{ port.fio }}</td>
-                <td>{{ port.inet_login }}</td>
-                <td>{{ port.iptv_login }}</td>
                 <td>{{ port.hostname }}</td>
                 <td>{{ port.ne_ip }}</td>
                 <td>{{ port.xdsl_slot }}</td>

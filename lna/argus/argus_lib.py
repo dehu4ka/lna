@@ -35,7 +35,13 @@ def parse_inet_login(raw_login):
     :param raw_login: СПД893623347
     :return: 77893623347
     """
+    if raw_login == '':
+        return ''
     return '77' + raw_login[3:]
+
+
+def clear_slot(slot):
+    return slot.replace('Порты ADSL2+_AnnexA - ', '')
 
 
 def get_ne_ip_from_hostname(hostname):
@@ -43,6 +49,10 @@ def get_ne_ip_from_hostname(hostname):
     if m:
         return m.group(1)
     return "0.0.0.0"
+
+
+def clear_city(city):
+    return city.replace('Ямало-Ненецкий АО, ', '')
 
 def parse_adsl_csv(filename):
     cursor = connection.cursor()
@@ -60,7 +70,7 @@ def parse_adsl_csv(filename):
         next(reader)  # Первые четыре строчки неинтересные. (Заголовки CSV)
         for row in reader:
             client = ArgusADSL()
-            client.city = row[1]
+            client.city = clear_city(row[1])
             client.hostname = row[2]
             client.ne_ip = row[3]
             if client.ne_ip == '':
@@ -71,7 +81,7 @@ def parse_adsl_csv(filename):
             client.room = row[7]
             client.iptv_login = parse_iptv_login(row[8])
             client.inet_login = parse_inet_login(row[9])
-            client.xdsl_slot = row[10]
+            client.xdsl_slot = clear_slot(row[10])
             client.xdsl_port = row[11]
             records.append(client)
             # break

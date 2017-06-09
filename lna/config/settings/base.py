@@ -286,4 +286,4 @@ ADMIN_URL = r'^admin/'
 # ------------------------------------------------------------------------------
 ALLOWED_HOSTS = ['10.179.9.55', '127.0.0.1', 'localhost']
 
-EL_PAGINATION_PER_PAGE = 4
+EL_PAGINATION_PER_PAGE = 15

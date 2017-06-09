@@ -3,8 +3,11 @@
 {% block title %}Данные по ADSL-портам{% endblock %}
 
 {% block content %}
-    <h2>Ports:</h2>
-    {% include page_template %}
+    <div class="container-fluid">
+        {{ form.as_p }}
+        <h2>Данные из БД:</h2>
+        {% include page_template %}
+    </div>
 {% endblock %}
 
 {% block javascript %}

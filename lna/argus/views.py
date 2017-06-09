@@ -58,3 +58,10 @@ class ADSL_View(AjaxListView):
 
     def get_queryset(self):
         return ArgusADSL.objects.all()
+
+    def get_context_data(self, **kwargs):
+        context = super(ADSL_View, self).get_context_data(**kwargs)
+        context['fluid_container'] = True
+        context['form'] = ArgusFileUploadForm
+        return context
+

@@ -81,7 +81,7 @@
 
     </div>
 
-    <div class="container">
+    <div class="{% if fluid_container is True %}container-fluid{% else %}container{% endif %}">
 
       {% if messages %}
           {% for message in messages %}
