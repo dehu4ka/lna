@@ -4,9 +4,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.views.generic import TemplateView
 from django.views import defaults as default_views
-from .views import ADSL_Import, ADSL_View
+from .views import ADSLImport, ADSLView
 
 urlpatterns = [
-    url(r'^import$', ADSL_Import.as_view(), name='import'),
-    url(r'^adsl$', ADSL_View.as_view(), name='adsl'),
+    url(r'^import$', ADSLImport.as_view(), name='import'),
+    url(r'^adsl$', ADSLView.as_view(), name='adsl'),
+    # url(r'^adsl/(?P<search>.+)$', ADSLView.as_view(), name='adsl_search'),
 ]

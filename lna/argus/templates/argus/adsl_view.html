@@ -3,9 +3,20 @@
 {% block title %}Данные по ADSL-портам{% endblock %}
 
 {% block content %}
-    <div class="container-fluid">
-        {{ form.as_p }}
-        <h2>Данные из БД:</h2>
+    <div class="container-fluid" xmlns="http://www.w3.org/1999/html">
+        <form method="post" class="form-inline">
+            {% csrf_token %}
+            <div class="form-group mx-sm-3">
+                {{ form }}
+            </div>
+            <button type="submit" class="btn btn-primary">Искать</button>
+        </form>
+        <h2>Данные из БД:</h2> {{ search }}
+        {% if search %}
+        <script type="application/javascript">
+            var search_string = "{{ search }}";
+        </script>
+        {% endif %}
         {% include page_template %}
     </div>
 {% endblock %}

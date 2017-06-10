@@ -15,7 +15,7 @@ def tel_num_to_int(tel_num):
     m = re.search(tel_pattern, tel_num)
     if m:
         return int(m.group(1)+m.group(2))
-    return -1
+    return ''
 
 
 def parse_iptv_login(raw_login):
@@ -41,7 +41,12 @@ def parse_inet_login(raw_login):
 
 
 def clear_slot(slot):
-    return slot.replace('Порты ADSL2+_AnnexA - ', '')
+    out = ''
+    out = slot.replace('Порты ADSL2+_AnnexA - ', '')
+    out = out.replace('Порты ADSL2_AnnexA - ', '')
+    out = out.replace('Порты ADSL2+_AnnexB - ', '')
+    out = out.replace('Порты ADSL2_AnnexB - ', '')
+    return out
 
 
 def get_ne_ip_from_hostname(hostname):
@@ -68,6 +73,7 @@ def parse_adsl_csv(filename):
         next(reader)
         next(reader)
         next(reader)  # Первые четыре строчки неинтересные. (Заголовки CSV)
+        counter = 0
         for row in reader:
             client = ArgusADSL()
             client.city = clear_city(row[1])
@@ -84,10 +90,11 @@ def parse_adsl_csv(filename):
             client.xdsl_slot = clear_slot(row[10])
             client.xdsl_port = row[11]
             records.append(client)
+            counter += 1
             # break
         # Массовое добавление
         ArgusADSL.objects.bulk_create(records, batch_size=1000)
-    pass
+    return counter
 
 
 def parse_gpon_csv(filename):

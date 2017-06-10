@@ -37,9 +37,13 @@
             settings = $.extend(defaults, options);
 
         var getContext = function(link) {
+            if (typeof search_string === 'undefined'){
+                var search_string = '';
+            }
             return {
                 key: link.data("el-querystring-key").split(' ')[0],
-                url: link.attr('href')
+                url: link.attr('href'),
+                search: search_string
             };
         };
 
@@ -61,6 +65,8 @@
                 link.hide();
                 loading.show();
                 var context = getContext(link);
+                console.log(context);
+
                 // Fire onClick callback.
                 if (settings.onClick.apply(html_link, [context]) !== false) {
                     var data = 'querystring_key=' + context.key;

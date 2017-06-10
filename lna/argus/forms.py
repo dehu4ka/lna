@@ -13,3 +13,11 @@ class ArgusFileUploadForm(forms.Form):
         'class': 'custom-select',
 
     }
+
+
+class ArgusSearchForm(forms.Form):
+    input_string = forms.CharField(widget=forms.TextInput, label='')
+    input_string.widget.attrs = {
+        'placeholder': 'Логин, телефон или ФИО',
+        'class': 'form-control'
+    }

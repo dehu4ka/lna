@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from django.views.generic import TemplateView
-from .forms import ArgusFileUploadForm
+from django.views.generic import TemplateView, FormView, UpdateView, ListView
+from .forms import ArgusFileUploadForm, ArgusSearchForm
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv
@@ -14,7 +14,7 @@ from .models import ArgusADSL
 # Create your views here.
 # Загрузка из CSV файла
 #@login_required()
-class ADSL_Import(LoginRequiredMixin, TemplateView):
+class ADSLImport(LoginRequiredMixin, TemplateView):
     template_name = 'argus/adsl.html'
 
     def get(self, request, *args, **kwargs):
@@ -32,14 +32,17 @@ class ADSL_Import(LoginRequiredMixin, TemplateView):
             messages.add_message(request, messages.INFO, 'File was uploaded to '+file_path)
             # Check tech | технология подключения
             tech = form.cleaned_data['tech']
+            counter = '0'
             if tech == '1':
-                parse_adsl_csv(file_path)
+                counter = parse_adsl_csv(file_path)
             elif tech == '2':
-                parse_gpon_csv(file_path)
+                counter = parse_gpon_csv(file_path)
             elif tech == '3':
-                parse_fttx_csv(file_path)
+                counter = parse_fttx_csv(file_path)
             else:
                 messages.add_message(request, messages.ERROR, 'Выбрана непонятная технология включения')
+
+            messages.add_message(request, messages.INFO, 'Добавлено ' + str(counter) + ' записей')
         else:
             messages.add_message(request, messages.ERROR, "Ошибка")
             messages.add_message(request, messages.ERROR, form.errors)
@@ -47,21 +50,57 @@ class ADSL_Import(LoginRequiredMixin, TemplateView):
 
         # New Form
         form = ArgusFileUploadForm()
-        args = {'form' : form }
+        args = {'form': form}
         return render(request, self.template_name, args)
 
 
-class ADSL_View(AjaxListView):
+class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
     context_object_name = 'argus_list'
     template_name = 'argus/adsl_view.html'
     page_template = 'argus/adsl_view_list_page.html'
+    form_class = ArgusSearchForm
+    success_url = '/argus/adsl'
+
+    @classmethod
+    def get_filter_by_search(cls, query):
+        print(query)
+        if query[:4] == '7789':
+            return ArgusADSL.objects.filter(inet_login__contains=query)
+        if query[:5] == '77089':
+            return ArgusADSL.objects.filter(iptv_login__contains=query)
+        if query[:3] == '349':
+            return ArgusADSL.objects.filter(tel_num__contains=query)
+        return ArgusADSL.objects.filter(fio__contains=query)
 
     def get_queryset(self):
-        return ArgusADSL.objects.all()
+        if self.request.method == 'POST':
+            form = ArgusSearchForm(self.request.POST)
+            if form.is_valid():
+                query = form.cleaned_data['input_string']
+                return self.get_filter_by_search(query)
+
+        return ArgusADSL.objects.all().order_by('-id')
 
     def get_context_data(self, **kwargs):
-        context = super(ADSL_View, self).get_context_data(**kwargs)
+        context = super(ADSLView, self).get_context_data(**kwargs)
+        if self.request.method == 'POST':
+            context['form'] = ArgusSearchForm(self.request.POST)
+            context['search'] = self.request.POST['input_string']
+        else:
+            context['form'] = ArgusSearchForm
         context['fluid_container'] = True
-        context['form'] = ArgusFileUploadForm
         return context
 
+    """def form_valid(self, form):
+        print(form.cleaned_data)
+        return super(ADSLView, self).form_valid(form)"""
+
+    # OMFG!!!
+    def post(self, request, *args, **kwargs):
+        #context = self.get_context_data(object_list=self.object_list, page_template=self.page_template)
+        #print(context)
+        return self.get(request, *args, **kwargs)
+
+
+    #def get(self, request, *args, **kwargs):
+    #    return super(ADSLView, self).get(request, *args, **kwargs)
