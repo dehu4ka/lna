@@ -65,12 +65,12 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
     def get_filter_by_search(cls, query):
         print(query)
         if query[:4] == '7789':
-            return ArgusADSL.objects.filter(inet_login__contains=query)
+            return ArgusADSL.objects.filter(inet_login__contains=query).order_by('inet_login')
         if query[:5] == '77089':
-            return ArgusADSL.objects.filter(iptv_login__contains=query)
+            return ArgusADSL.objects.filter(iptv_login__contains=query).order_by('iptv_login')
         if query[:3] == '349':
-            return ArgusADSL.objects.filter(tel_num__contains=query)
-        return ArgusADSL.objects.filter(fio__contains=query)
+            return ArgusADSL.objects.filter(tel_num__contains=query).order_by('tel_num')
+        return ArgusADSL.objects.filter(fio__contains=query).order_by('fio')
 
     def get_queryset(self):
         if self.request.method == 'POST':
@@ -78,6 +78,10 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
             if form.is_valid():
                 query = form.cleaned_data['input_string']
                 return self.get_filter_by_search(query)
+        if self.request.method == 'GET':
+            input_string = self.request.GET.get('search')
+            if input_string:
+                return self.get_filter_by_search(input_string)
 
         return ArgusADSL.objects.all().order_by('-id')
 
@@ -97,8 +101,6 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
 
     # OMFG!!!
     def post(self, request, *args, **kwargs):
-        #context = self.get_context_data(object_list=self.object_list, page_template=self.page_template)
-        #print(context)
         return self.get(request, *args, **kwargs)
 
 

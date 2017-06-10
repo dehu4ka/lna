@@ -12,11 +12,16 @@
             <button type="submit" class="btn btn-primary">Искать</button>
         </form>
         <h2>Данные из БД:</h2> {{ search }}
-        {% if search %}
         <script type="application/javascript">
+        {% if search %}
+
             var search_string = "{{ search }}";
-        </script>
+            console.log('search string was set')
+
+        {% else %}
+            var search_string = '';
         {% endif %}
+        </script>
         {% include page_template %}
     </div>
 {% endblock %}
