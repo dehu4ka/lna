@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.shortcuts import render, HttpResponse, redirect
 from el_pagination.views import AjaxListView
-from .models import ArgusADSL
+from .models import ArgusADSL, ArgusFTTx
 
 
 # Create your views here.
@@ -65,7 +65,6 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
 
     @classmethod
     def get_filter_by_search(cls, query):
-        print(query)
         if query[:4] == '7789':
             return ArgusADSL.objects.filter(inet_login__contains=query).order_by('inet_login')
         if query[:5] == '77089':
@@ -108,3 +107,28 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
 
     #def get(self, request, *args, **kwargs):
     #    return super(ADSLView, self).get(request, *args, **kwargs)
+
+
+class FTTxView(ADSLView):
+    @classmethod
+    def get_filter_by_search(cls, query):
+        if query[:4] == '7789':
+            return ArgusFTTx.objects.filter(inet_login__contains=query).order_by('inet_login')
+        if query[:5] == '77089':
+            return ArgusFTTx.objects.filter(iptv_login__contains=query).order_by('iptv_login')
+        if query.isdigit():
+            return ArgusFTTx.objects.filter(tel_num__contains=query).order_by('tel_num')
+        return ArgusFTTx.objects.filter(fio__icontains=query).order_by('fio')  # case insensitive
+
+    def get_queryset(self):
+        if self.request.method == 'POST':
+            form = ArgusSearchForm(self.request.POST)
+            if form.is_valid():
+                query = form.cleaned_data['input_string']
+                return self.get_filter_by_search(query)
+        if self.request.method == 'GET':
+            input_string = self.request.GET.get('search')
+            if input_string:
+                return self.get_filter_by_search(input_string)
+
+        return ArgusFTTx.objects.all().order_by('-id')
