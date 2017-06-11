@@ -11,8 +11,8 @@ class ArgusADSL(models.Model):
     room = models.CharField(max_length=512, default='N/A')
     iptv_login = models.CharField(max_length=512, db_index=True)
     inet_login = models.CharField(max_length=512, db_index=True)
-    xdsl_slot = models.CharField(max_length=512, default='N/A')
-    xdsl_port = models.CharField(max_length=512, default='N/A')
+    slot = models.CharField(max_length=512, default='N/A')
+    port = models.CharField(max_length=512, default='N/A')
 
 """class ArgusFTTx(models.Model):
     city = models.CharField(max_length=512, default='N/A')

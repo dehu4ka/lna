@@ -40,7 +40,7 @@ def parse_inet_login(raw_login):
     return '77' + raw_login[3:]
 
 
-def clear_slot(slot):
+def clear_xdsl_slot(slot):
     out = ''
     out = slot.replace('Порты ADSL2+_AnnexA - ', '')
     out = out.replace('Порты ADSL2_AnnexA - ', '')
@@ -108,8 +108,8 @@ def parse_adsl_csv(filename):
             client.room = row[7]
             client.iptv_login = parse_iptv_login(row[8])
             client.inet_login = parse_inet_login(row[9])
-            client.xdsl_slot = clear_slot(row[10])
-            client.xdsl_port = row[11]
+            client.slot = clear_xdsl_slot(row[10])
+            client.port = row[11]
             records.append(client)
             counter += 1
             # break
