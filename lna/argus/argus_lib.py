@@ -46,6 +46,18 @@ def clear_slot(slot):
     out = out.replace('Порты ADSL2_AnnexA - ', '')
     out = out.replace('Порты ADSL2+_AnnexB - ', '')
     out = out.replace('Порты ADSL2_AnnexB - ', '')
+    out = out.replace('Порты ADSL_AnnexA - ', '')
+    out = out.replace('Порты ADSL_AnnexB - ', '')
+    if len(out) > 2: # остаётся самый шлак...
+        temp = out[-2:] # берём последние три символа в надежде
+        res = re.findall(r'\d+', temp) # Ищем цифры https://stackoverflow.com/questions/4289331/python-extract-numbers-from-a-string
+        if res:
+            res = res[-1]
+            return res
+        else:
+            res = 0 # если не нашли - пишем 0
+        # print(res, " <= ", temp, " <= ", out)
+            return res
     return out
 
 
@@ -58,6 +70,15 @@ def get_ne_ip_from_hostname(hostname):
 
 def clear_city(city):
     return city.replace('Ямало-Ненецкий АО, ', '')
+
+def clear_hostname(hostname):
+    res = re.findall(r'([0-9A-Za-z-]+)', hostname) # берём первые символы, оставляя за скобками IP. Скобки не входят в поиск.
+    if res:
+        res = res[0] # получаем hostname
+    else:
+        res = 'N/A'
+    return res
+
 
 def parse_adsl_csv(filename):
     cursor = connection.cursor()
@@ -77,7 +98,7 @@ def parse_adsl_csv(filename):
         for row in reader:
             client = ArgusADSL()
             client.city = clear_city(row[1])
-            client.hostname = row[2]
+            client.hostname = clear_hostname(row[2])
             client.ne_ip = row[3]
             if client.ne_ip == '':
                 client.ne_ip = get_ne_ip_from_hostname(client.hostname)

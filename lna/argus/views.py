@@ -70,7 +70,7 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
             return ArgusADSL.objects.filter(iptv_login__contains=query).order_by('iptv_login')
         if query[:3] == '349':
             return ArgusADSL.objects.filter(tel_num__contains=query).order_by('tel_num')
-        return ArgusADSL.objects.filter(fio__contains=query).order_by('fio')
+        return ArgusADSL.objects.filter(fio__icontains=query).order_by('fio') # case insensitive
 
     def get_queryset(self):
         if self.request.method == 'POST':
