@@ -33,16 +33,18 @@ class ADSLImport(LoginRequiredMixin, TemplateView):
             # Check tech | технология подключения
             tech = form.cleaned_data['tech']
             counter = '0'
+            ignored = '0'
             if tech == '1':
                 counter = parse_adsl_csv(file_path)
             elif tech == '2':
                 counter = parse_gpon_csv(file_path)
             elif tech == '3':
-                counter = parse_fttx_csv(file_path)
+                counter, ignored = parse_fttx_csv(file_path)
             else:
                 messages.add_message(request, messages.ERROR, 'Выбрана непонятная технология включения')
 
-            messages.add_message(request, messages.INFO, 'Добавлено ' + str(counter) + ' записей')
+            messages.add_message(request, messages.INFO,
+                                 'Добавлено ' + str(counter) + ' записей. Проигнорировано - ' + str(ignored))
         else:
             messages.add_message(request, messages.ERROR, "Ошибка")
             messages.add_message(request, messages.ERROR, form.errors)

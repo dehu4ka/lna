@@ -14,7 +14,7 @@ class ArgusADSL(models.Model):
     slot = models.CharField(max_length=512, default='N/A')
     port = models.CharField(max_length=512, default='N/A')
 
-"""class ArgusFTTx(models.Model):
+class ArgusFTTx(models.Model):
     city = models.CharField(max_length=512, default='N/A')
     hostname = models.CharField(max_length=512, default='None')
     ne_ip = models.GenericIPAddressField(protocol='IPv4', default='0.0.0.0')
@@ -24,6 +24,6 @@ class ArgusADSL(models.Model):
     room = models.CharField(max_length=512, default='N/A')
     iptv_login = models.CharField(max_length=512, db_index=True)
     inet_login = models.CharField(max_length=512, db_index=True)
-    xdsl_slot = models.CharField(max_length=512, default='N/A')
-    xdsl_port = models.CharField(max_length=512, default='N/A')
-"""
+    slot = models.CharField(max_length=512, default='N/A')
+    port = models.CharField(max_length=512, default='N/A')
+    lira = models.CharField(max_length=32, default='N/A')
