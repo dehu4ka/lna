@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
-{% block title %}Данные по ADSL-портам{% endblock %}
+{% block title %}Данные по {{ tech_in_title }}-портам{% endblock %}
 
 {% block content %}
-    <div class="container-fluid" xmlns="http://www.w3.org/1999/html">
+    <div class="container-fluid">
         <form method="post" class="form-inline">
             {% csrf_token %}
             <div class="form-group mx-sm-3">
@@ -16,7 +16,7 @@
         {% if search %}
 
             var search_string = "{{ search }}";
-            console.log('search string was set')
+            console.log('search string was set');
 
         {% else %}
             var search_string = '';

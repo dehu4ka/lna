@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.shortcuts import render, HttpResponse, redirect
 from el_pagination.views import AjaxListView
-from .models import ArgusADSL, ArgusFTTx
+from .models import ArgusADSL, ArgusFTTx, ArgusGPON
 
 
 # Create your views here.
@@ -37,7 +37,7 @@ class ADSLImport(LoginRequiredMixin, TemplateView):
             if tech == '1':
                 counter = parse_adsl_csv(file_path)
             elif tech == '2':
-                counter = parse_gpon_csv(file_path)
+                counter, ignored = parse_gpon_csv(file_path)
             elif tech == '3':
                 counter, ignored = parse_fttx_csv(file_path)
             else:
@@ -62,6 +62,7 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
     page_template = 'argus/adsl_view_list_page.html'
     form_class = ArgusSearchForm
     success_url = '/argus/adsl'
+    tech_in_title = 'ADSL'
 
     @classmethod
     def get_filter_by_search(cls, query):
@@ -94,6 +95,7 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
         else:
             context['form'] = ArgusSearchForm
         context['fluid_container'] = True
+        context['tech_in_title'] = self.tech_in_title
         return context
 
     """def form_valid(self, form):
@@ -110,6 +112,8 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
 
 
 class FTTxView(ADSLView):
+    tech_in_title = 'FTTx'
+
     @classmethod
     def get_filter_by_search(cls, query):
         if query[:4] == '7789':
@@ -132,3 +136,31 @@ class FTTxView(ADSLView):
                 return self.get_filter_by_search(input_string)
 
         return ArgusFTTx.objects.all().order_by('-id')
+
+
+
+class GPONView(ADSLView):
+    tech_in_title = 'GPON'
+
+    @classmethod
+    def get_filter_by_search(cls, query):
+        if query[:4] == '7789':
+            return ArgusGPON.objects.filter(inet_login__contains=query).order_by('inet_login')
+        if query[:5] == '77089':
+            return ArgusGPON.objects.filter(iptv_login__contains=query).order_by('iptv_login')
+        if query.isdigit():
+            return ArgusGPON.objects.filter(tel_num__contains=query).order_by('tel_num')
+        return ArgusGPON.objects.filter(fio__icontains=query).order_by('fio')  # case insensitive
+
+    def get_queryset(self):
+        if self.request.method == 'POST':
+            form = ArgusSearchForm(self.request.POST)
+            if form.is_valid():
+                query = form.cleaned_data['input_string']
+                return self.get_filter_by_search(query)
+        if self.request.method == 'GET':
+            input_string = self.request.GET.get('search')
+            if input_string:
+                return self.get_filter_by_search(input_string)
+
+        return ArgusGPON.objects.all().order_by('-id')

@@ -49,7 +49,7 @@
                       <div class="dropdown-menu" aria-labelledby="navbarArgusDropdown">
                           <a class="dropdown-item {% active_url 'argus:adsl' %}" href="{% url 'argus:adsl' %}">ADSL</a>
                           <a class="dropdown-item {% active_url 'argus:fttx' %}" href="{% url 'argus:fttx' %}">FTTx</a>
-                          <a class="dropdown-item" href="#">GPON</a>
+                          <a class="dropdown-item {% active_url 'argus:gpon' %}" href="{% url 'argus:gpon' %}">GPON</a>
                           <a class="dropdown-item {% active_url 'argus:import' %}" href="{% url 'argus:import' %}">Import</a>
                       </div>
                   </li>
