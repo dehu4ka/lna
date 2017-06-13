@@ -1,9 +1,9 @@
 from django.shortcuts import render
 from django.views.generic import TemplateView, FormView, UpdateView, ListView
-from .forms import ArgusFileUploadForm, ArgusSearchForm
+from .forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
-from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv
+from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.shortcuts import render, HttpResponse, redirect
@@ -40,6 +40,8 @@ class ADSLImport(LoginRequiredMixin, TemplateView):
                 counter, ignored = parse_gpon_csv(file_path)
             elif tech == '3':
                 counter, ignored = parse_fttx_csv(file_path)
+            elif tech == '4':
+                counter, ignored = parse_astu_csv(file_path)
             else:
                 messages.add_message(request, messages.ERROR, 'Выбрана непонятная технология включения')
 
@@ -164,3 +166,24 @@ class GPONView(ADSLView):
                 return self.get_filter_by_search(input_string)
 
         return ArgusGPON.objects.all().order_by('-id')
+
+
+class ASTUView(LoginRequiredMixin, FormView):
+# class ASTUView(LoginRequiredMixin, AjaxListView, FormView):
+    context_object_name = 'astu_list'
+    template_name = 'argus/astu.html'
+    form_class = ASTUSearchForm
+    success_url = '/argus/astu'
+
+    def get_queryset(self):
+        return None
+
+    def get_context_data(self, **kwargs):
+        context = super(ASTUView, self).get_context_data(**kwargs)
+        if self.request.method == 'POST':
+            context['form'] = ASTUSearchForm(self.request.POST)
+            context['search'] = self.request.POST['input_string']
+        else:
+            context['form'] = ASTUSearchForm
+        context['fluid_container'] = True
+        return context

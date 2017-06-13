@@ -1,6 +1,6 @@
 import csv
 from django.db import connection
-from .models import ArgusADSL, ArgusFTTx, ArgusGPON
+from .models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU
 import re
 
 tel_pattern = re.compile("\((\d+)\)(\d+)")
@@ -260,3 +260,50 @@ def parse_fttx_csv(filename):
         # Массовое добавление
         ArgusFTTx.objects.bulk_create(records, batch_size=1000)
     return counter, ignored
+
+
+def parse_astu_csv(filename):
+    cursor = connection.cursor()
+    cursor.execute("TRUNCATE argus_ASTU CASCADE;")
+
+    records = list()
+
+    with open('lna' + filename, encoding='windows-1251') as csv_file:
+        reader = csv.reader(csv_file, delimiter=';', quotechar='"')
+        next(reader)
+        next(reader)
+        next(reader)
+        next(reader)
+        next(reader)
+        next(reader)  # Первые шесть строчек неинтересны. (Заголовки CSV)
+        counter = 0
+        ignored = 0
+        for row in reader:
+            ne = ASTU()
+            ne.hostname = row[1]
+            ne.address = row[2]
+            ne.structure_level = row[3]
+            ne.ne_class = row[4]
+            ne.vendor = row[5]
+            ne.model = row[6]
+            ne.status = row[8]
+            ne.comment = row[11]
+            ne.ne_ip = row[12]
+            ne.category = row[13]
+            ne.segment = row[18]
+            ne.serial_number = row[19]
+            if ne.ne_ip == '' or ne.ne_ip == '-':
+                ignored += 1
+                #  print(ne.hostname, ne.ne_ip)
+            elif not re.findall(ip_pattern, ne.ne_ip):  # чтобы наверняка
+                ignored += 1
+                #  print(ne.hostname, ne.ne_ip)
+            elif ne.ne_ip == '11.92.2.687':  # заебало с регэкспами ковыряться
+                ignored += 1
+            else:
+                records.append(ne)
+                counter += 1
+        # Массовое добавление
+        ASTU.objects.bulk_create(records, batch_size=1000)
+    return counter, ignored
+
