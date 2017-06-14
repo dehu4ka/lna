@@ -59,6 +59,9 @@ class ASTU(models.Model):
     segment = models.CharField(max_length=512, default='')
     serial_number = models.CharField(max_length=512, default='')
 
+    def __str__(self):
+        return self.hostname + " : " + self.ne_ip + " : " + self.vendor + " : " + self.model
+
 
 
 

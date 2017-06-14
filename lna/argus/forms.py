@@ -1,5 +1,5 @@
 from django import forms
-
+from .models import ASTU
 
 class ArgusFileUploadForm(forms.Form):
     file = forms.FileField(required=True, label='Выберите файл')
@@ -23,14 +23,29 @@ class ArgusSearchForm(forms.Form):
     }
 
 class ASTUSearchForm(forms.Form):
-    # поле для ввода повседневной информации
+
+    @classmethod
+    def get_some_tuples_from_ASTU(field_name, label):
+        field_dict = dict()
+        field_objects = ASTU.objects.order_by(field_name).distinct(field_name)
+        field_dict[''] = label
+        for obj in field_objects:
+            field_dict[getattr(obj, field_name)] = getattr(obj, field_name)
+        return tuple(field_dict.items())
+
     input_string = forms.CharField(widget=forms.TextInput, label='', required=False)
     input_string.widget.attrs = {
         'placeholder': 'hostname / ip / адрес',
         'class': 'form-control'
     }
-    # выбор только активного оборудование (в статусе эксплуатация)
-    is_active = forms.CharField(widget=forms.CheckboxInput, label='Только в статусе эксплуатация', required=False)
-    is_active.widget.attrs = {
-        'class': 'checkbox'
-    }
+
+    # partyhard =)
+    status = forms.ChoiceField(widget=forms.Select(), choices=get_some_tuples_from_ASTU.__func__('status', 'Статус'), label='')
+    model = forms.ChoiceField(widget=forms.Select(), choices=get_some_tuples_from_ASTU.__func__('model', 'Модель'), label='')
+    vendor = forms.ChoiceField(widget=forms.Select(), choices=get_some_tuples_from_ASTU.__func__('vendor', 'Производитель'), label='')
+    segment = forms.ChoiceField(widget=forms.Select(), choices=get_some_tuples_from_ASTU.__func__('segment', 'Сегмент'), label='')
+
+    status.widget.attrs = {'class': 'custom-select custom-select-sm'}
+    model.widget.attrs = {'class': 'custom-select custom-select-sm'}
+    vendor.widget.attrs = {'class': 'custom-select custom-select-sm'}
+    segment.widget.attrs = {'class': 'custom-select custom-select-sm'}
