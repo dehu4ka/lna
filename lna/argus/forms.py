@@ -1,6 +1,7 @@
 from django import forms
 from .models import ASTU
 
+
 class ArgusFileUploadForm(forms.Form):
     file = forms.FileField(required=True, label='Выберите файл')
     file.widget.attrs = {
@@ -9,7 +10,7 @@ class ArgusFileUploadForm(forms.Form):
     }
     tech_choices = (('', ''), ('1', 'ADSL'), ('2', 'GPON'), ('3', 'FTTx'), ('4', 'АСТУ'))
     tech = forms.ChoiceField(widget=forms.Select(), choices=tech_choices, label='Выбор технологии', required=True)
-    tech.widget.attrs={
+    tech.widget.attrs = {
         'class': 'custom-select',
 
     }
@@ -22,9 +23,10 @@ class ArgusSearchForm(forms.Form):
         'class': 'form-control'
     }
 
+
 class ASTUSearchForm(forms.Form):
 
-    @classmethod
+    @staticmethod
     def get_some_tuples_from_ASTU(field_name, label):
         field_dict = dict()
         field_objects = ASTU.objects.order_by(field_name).distinct(field_name)
@@ -35,17 +37,38 @@ class ASTUSearchForm(forms.Form):
 
     input_string = forms.CharField(widget=forms.TextInput, label='', required=False)
     input_string.widget.attrs = {
-        'placeholder': 'hostname / ip / адрес',
-        'class': 'form-control'
+        'placeholder': 'hostname/ip/адрес',
+        'class': 'form-control',
+        'size': 13
     }
 
     # partyhard =)
-    status = forms.ChoiceField(widget=forms.Select(), choices=get_some_tuples_from_ASTU.__func__('status', 'Статус'), label='')
-    model = forms.ChoiceField(widget=forms.Select(), choices=get_some_tuples_from_ASTU.__func__('model', 'Модель'), label='')
-    vendor = forms.ChoiceField(widget=forms.Select(), choices=get_some_tuples_from_ASTU.__func__('vendor', 'Производитель'), label='')
-    segment = forms.ChoiceField(widget=forms.Select(), choices=get_some_tuples_from_ASTU.__func__('segment', 'Сегмент'), label='')
+    vendor = forms.ChoiceField(
+        widget=forms.Select(),
+        choices=get_some_tuples_from_ASTU.__func__('vendor', 'Производитель'),
+        label='', required=False
+    )
+    model = forms.ChoiceField(
+        widget=forms.Select(),
+        choices=get_some_tuples_from_ASTU.__func__('model', 'Модель'),
+        label='', required=False
+    )
+    segment = forms.ChoiceField(
+        widget=forms.Select(),
+        choices=get_some_tuples_from_ASTU.__func__('segment', 'Сегмент'),
+        label='', required=False
+    )
+    status = forms.ChoiceField(
+        widget=forms.Select(),
+        choices=get_some_tuples_from_ASTU.__func__('status', 'Статус'),
+        label='', required=False
+    )
 
     status.widget.attrs = {'class': 'custom-select custom-select-sm'}
     model.widget.attrs = {'class': 'custom-select custom-select-sm'}
     vendor.widget.attrs = {'class': 'custom-select custom-select-sm'}
     segment.widget.attrs = {'class': 'custom-select custom-select-sm'}
+
+    def __init__(self, *args, **kwargs):
+        super(ASTUSearchForm, self).__init__(*args, **kwargs)
+        self.initial['status'] = 'эксплуатация'

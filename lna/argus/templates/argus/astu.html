@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load argus.tags %}
 
 {% block title %}Данные из АСТУ{% endblock %}
 
@@ -7,10 +8,45 @@
 
     <form method="post" class="form-inline">
             {% csrf_token %}
-            <div class="form-group mx-sm-3">
+            <div class="form-group mx-sm-3 form-inline">
                 {{ form }}
             </div>
             <button type="submit" class="btn btn-primary">Искать</button>
         </form>
+
+    <p>Найдено: {{ row_count }}</p>
+    {% if astu_list %}
+        </div>
+            <div class="container-fluid">
+           <table class="table table-striped table-bordered table-hover table-sm">
+                <thead>
+                <tr>
+                    <th>Hostname</th>
+                    <th>IP</th>
+                    <th>Производитель</th>
+                    <th>Модель</th>
+                    <th>Сегмент</th>
+                    <th>Адрес</th>
+                </tr>
+                </thead>
+                <tbody>
+
+        {% for ne in astu_list %}
+            <tr>
+                <td>{{ ne.hostname }}{{ ne.status|status_badge }}</td>
+                <td>{{ ne.ne_ip }}</td>
+                <td>{{ ne.vendor }}</td>
+                <td>{{ ne.model }}</td>
+                <td>{{ ne.segment }}</td>
+                <td>{{ ne.address }}</td>
+            </tr>
+
+        {% empty %}
+            <p>Не найдено</p>
+        {% endfor %}
+                </tbody>
+           </table>
+        </div>
+    {% endif %}
 
 {% endblock %}

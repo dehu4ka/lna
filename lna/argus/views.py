@@ -1,19 +1,20 @@
 from django.shortcuts import render
 from django.views.generic import TemplateView, FormView, UpdateView, ListView
-from .forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
-from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
+from django.db.models import Q
 from django.shortcuts import render, HttpResponse, redirect
 from el_pagination.views import AjaxListView
-from .models import ArgusADSL, ArgusFTTx, ArgusGPON
+from .models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU
+from .forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
+from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv, ip_pattern
+import re
 
 
 # Create your views here.
 # Загрузка из CSV файла
-#@login_required()
 class ADSLImport(LoginRequiredMixin, TemplateView):
     template_name = 'argus/adsl.html'
 
@@ -74,7 +75,7 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
             return ArgusADSL.objects.filter(iptv_login__contains=query).order_by('iptv_login')
         if query[:3] == '349':
             return ArgusADSL.objects.filter(tel_num__contains=query).order_by('tel_num')
-        return ArgusADSL.objects.filter(fio__icontains=query).order_by('fio') # case insensitive
+        return ArgusADSL.objects.filter(fio__icontains=query).order_by('fio')  # case insensitive
 
     def get_queryset(self):
         if self.request.method == 'POST':
@@ -109,10 +110,6 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
         return self.get(request, *args, **kwargs)
 
 
-    #def get(self, request, *args, **kwargs):
-    #    return super(ADSLView, self).get(request, *args, **kwargs)
-
-
 class FTTxView(ADSLView):
     tech_in_title = 'FTTx'
 
@@ -138,7 +135,6 @@ class FTTxView(ADSLView):
                 return self.get_filter_by_search(input_string)
 
         return ArgusFTTx.objects.all().order_by('-id')
-
 
 
 class GPONView(ADSLView):
@@ -168,16 +164,56 @@ class GPONView(ADSLView):
         return ArgusGPON.objects.all().order_by('-id')
 
 
-class ASTUView(LoginRequiredMixin, FormView):
-# class ASTUView(LoginRequiredMixin, AjaxListView, FormView):
+class ASTUView(LoginRequiredMixin, FormView, ListView):
     context_object_name = 'astu_list'
     template_name = 'argus/astu.html'
     form_class = ASTUSearchForm
     success_url = '/argus/astu'
+    model = ASTU
 
     def get_queryset(self):
-        return None
+        if self.request.method == 'POST':
+            form = ASTUSearchForm(self.request.POST)
+            if form.is_valid():
+                input_string = form.cleaned_data['input_string']
+                status = form.cleaned_data['status']
+                vendor = form.cleaned_data['vendor']
+                model = form.cleaned_data['model']
+                segment = form.cleaned_data['segment']
 
+                search_objects = ASTU.objects.all()
+
+                if input_string:
+                    if re.findall(ip_pattern, input_string):
+                        search_objects = ASTU.objects.filter(ne_ip=input_string)
+                    else:
+                        search_objects = ASTU.objects.filter(
+                            Q(hostname__icontains=input_string) |
+                            Q(address__icontains=input_string)
+                        )
+                if status:
+                    search_objects = search_objects.filter(status=status)
+                if vendor:
+                    search_objects = search_objects.filter(vendor=vendor)
+                if model:
+                    search_objects = search_objects.filter(model=model)
+                if segment:
+                    search_objects = search_objects.filter(segment=segment)
+                return search_objects
+            else:
+                messages.add_message(self.request, messages.ERROR, form.errors)
+
+        return ASTU.objects.all().filter(status__exact='эксплуатация')[:5]
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super(ASTUView, self).get_context_data(**kwargs)
+        # context['fluid_container'] = True
+        context['row_count'] = self.get_queryset().count() or 0
+        return context
+"""
     def get_context_data(self, **kwargs):
         context = super(ASTUView, self).get_context_data(**kwargs)
         if self.request.method == 'POST':
@@ -187,3 +223,4 @@ class ASTUView(LoginRequiredMixin, FormView):
             context['form'] = ASTUSearchForm
         context['fluid_container'] = True
         return context
+"""
