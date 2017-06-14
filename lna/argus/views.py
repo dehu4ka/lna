@@ -101,10 +101,6 @@ class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
         context['tech_in_title'] = self.tech_in_title
         return context
 
-    """def form_valid(self, form):
-        print(form.cleaned_data)
-        return super(ADSLView, self).form_valid(form)"""
-
     # OMFG!!!
     def post(self, request, *args, **kwargs):
         return self.get(request, *args, **kwargs)
@@ -213,14 +209,11 @@ class ASTUView(LoginRequiredMixin, FormView, ListView):
         # context['fluid_container'] = True
         context['row_count'] = self.get_queryset().count() or 0
         return context
-"""
-    def get_context_data(self, **kwargs):
-        context = super(ASTUView, self).get_context_data(**kwargs)
-        if self.request.method == 'POST':
-            context['form'] = ASTUSearchForm(self.request.POST)
-            context['search'] = self.request.POST['input_string']
-        else:
-            context['form'] = ASTUSearchForm
-        context['fluid_container'] = True
-        return context
-"""
+
+
+class SearchView(LoginRequiredMixin, AjaxListView, FormView, TemplateView):
+    template_name = 'argus/adsl_view.html'
+    page_template = 'argus/adsl_view_list_page.html'
+    form_class = ArgusSearchForm
+    success_url = '/argus/search'
+    tech_in_title = 'ADSL'
