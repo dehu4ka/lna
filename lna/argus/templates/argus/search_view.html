@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Данные по {{ tech_in_title }}-портам{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <form method="post" class="form-inline">
+            {% csrf_token %}
+            <div class="form-group mx-sm-3">
+                {{ form }}
+            </div>
+            <button type="submit" class="btn btn-primary">Искать</button>
+        </form>
+        <h2>Данные из БД:</h2>
+        <p> Запрос: <span class="bg-faded font-weight-bold">{{ search }}</span>. Найдено: {{ results.count }}</p>
+        <script type="application/javascript">
+        {% if search %}
+
+            var search_string = "{{ search }}";
+            console.log('search string was set');
+
+        {% else %}
+            var search_string = '';
+        {% endif %}
+        </script>
+        <div class="endless_page_template">
+            {% include page_template %}
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block javascript %}
+    {{ block.super }}
+    <script src="{{ STATIC_URL }}el-pagination/js/el-pagination.js"></script>
+    <script>
+        $.endlessPaginate({
+            paginateOnScroll: true,
+            paginateOnScrollChunkSize: 5
+        });
+    </script>
+{% endblock %}

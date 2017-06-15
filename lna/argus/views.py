@@ -211,9 +211,72 @@ class ASTUView(LoginRequiredMixin, FormView, ListView):
         return context
 
 
-class SearchView(LoginRequiredMixin, AjaxListView, FormView, TemplateView):
-    template_name = 'argus/adsl_view.html'
-    page_template = 'argus/adsl_view_list_page.html'
+class SearchView(LoginRequiredMixin, AjaxListView, FormView):
+    template_name = 'argus/search_view.html'
     form_class = ArgusSearchForm
-    success_url = '/argus/search'
-    tech_in_title = 'ADSL'
+    success_url = '/argus/find'
+    page_template = 'argus/search_view_list_page.html'
+
+    def get_queryset(self):
+        return None
+
+    # OMFG!!!
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super(SearchView, self).get_context_data(**kwargs)
+        context['page_template'] = self.page_template
+        if self.request.method == 'POST':
+            context['search'] = self.request.POST['input_string']
+            context['results'] = self.get_results(self.request.POST['input_string'])
+            context['form'] = ArgusSearchForm(self.request.POST)
+        else:
+            context['search'] = self.request.GET.get('search')
+            context['results'] = self.get_results(self.request.GET.get('search'))
+            context['form'] = ArgusSearchForm()
+        context['fluid_container'] = True
+        return context
+
+    def get_results(self, input_string=None):
+        adsl_search_objects = ArgusADSL.objects.all().order_by('id')
+        fttx_search_objects = ArgusFTTx.objects.all().order_by('id')
+        gpon_search_objects = ArgusGPON.objects.all().order_by('id')
+        count = 15
+        if input_string:
+            if re.findall(ip_pattern, input_string):
+                adsl_search_objects = adsl_search_objects.filter(ne_ip=input_string)
+                gpon_search_objects = gpon_search_objects.filter(ne_ip=input_string)
+                fttx_search_objects = fttx_search_objects.filter(ne_ip=input_string)
+            else:
+                adsl_search_objects = adsl_search_objects.filter(
+                    Q(inet_login__contains=input_string) |
+                    Q(iptv_login__contains=input_string) |
+                    Q(tel_num__contains=input_string) |
+                    Q(address__icontains=input_string) |
+                    Q(fio__icontains=input_string) |
+                    Q(hostname__icontains=input_string)
+                )
+                gpon_search_objects = gpon_search_objects.filter(
+                    Q(inet_login__contains=input_string) |
+                    Q(iptv_login__contains=input_string) |
+                    Q(tel_num__contains=input_string) |
+                    Q(address__icontains=input_string) |
+                    Q(fio__icontains=input_string) |
+                    Q(hostname__icontains=input_string)
+                )
+                fttx_search_objects = fttx_search_objects.filter(
+                    Q(inet_login__contains=input_string) |
+                    Q(iptv_login__contains=input_string) |
+                    Q(tel_num__contains=input_string) |
+                    Q(address__icontains=input_string) |
+                    Q(fio__icontains=input_string) |
+                    Q(hostname__icontains=input_string)
+                )
+                count = adsl_search_objects.count() + gpon_search_objects.count() + fttx_search_objects.count()
+            return {'adsl_search_objects': adsl_search_objects, 'gpon_search_objects': gpon_search_objects,
+                    'fttx_search_objects': fttx_search_objects, 'count': count}
+        return {'adsl_search_objects': adsl_search_objects[:5], 'gpon_search_objects': gpon_search_objects[:5],
+                'fttx_search_objects': fttx_search_objects[:5], 'count': count}
+
+

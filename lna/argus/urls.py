@@ -12,6 +12,6 @@ urlpatterns = [
     url(r'^fttx$', FTTxView.as_view(), name='fttx'),
     url(r'^gpon$', GPONView.as_view(), name='gpon'),
     url(r'^astu$', ASTUView.as_view(), name='astu'),
-    url(r'^search', SearchView.as_view(), name='search'),
+    url(r'^find', SearchView.as_view(), name='search'),
 
 ]

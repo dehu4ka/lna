@@ -158,7 +158,7 @@ def parse_adsl_csv(filename):
             client.hostname = clear_hostname(row[2])
             client.ne_ip = row[3]
             if client.ne_ip == '':
-                client.ne_ip = get_ne_ip_from_hostname(client.hostname)
+                client.ne_ip = get_ne_ip_from_hostname(row[2])
             client.tel_num = adsl_tel_num_to_int(row[4])
             client.address = row[5]
             client.fio = row[6]
