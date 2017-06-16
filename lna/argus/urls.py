@@ -4,13 +4,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.views.generic import TemplateView
 from django.views import defaults as default_views
-from .views import ADSLImport, ADSLView, FTTxView, GPONView, ASTUView, SearchView
+from .views import ClientImport, ASTUView, SearchView
 
 urlpatterns = [
-    url(r'^import$', ADSLImport.as_view(), name='import'),
-    url(r'^adsl$', ADSLView.as_view(), name='adsl'),
-    url(r'^fttx$', FTTxView.as_view(), name='fttx'),
-    url(r'^gpon$', GPONView.as_view(), name='gpon'),
+    url(r'^import$', ClientImport.as_view(), name='import'),
     url(r'^astu$', ASTUView.as_view(), name='astu'),
     url(r'^find', SearchView.as_view(), name='search'),
 

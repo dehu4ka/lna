@@ -1,6 +1,6 @@
 import csv
 from django.db import connection
-from .models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU
+from .models import ASTU, Client
 import re
 
 tel_pattern = re.compile("\((\d+)\)(\d+)")
@@ -139,7 +139,7 @@ def get_gpon_slot(slot):
 
 def parse_adsl_csv(filename):
     cursor = connection.cursor()
-    cursor.execute("TRUNCATE argus_ArgusADSL CASCADE;")
+    cursor.execute("DELETE FROM argus_client WHERE tech = 'ADSL'")
 
     # По одному объекты вставляются мееедленно. Будем вставлять пачкой
     records = list()
@@ -153,7 +153,7 @@ def parse_adsl_csv(filename):
         next(reader)  # Первые четыре строчки неинтересные. (Заголовки CSV)
         counter = 0
         for row in reader:
-            client = ArgusADSL()
+            client = Client()
             client.city = clear_city(row[1])
             client.hostname = clear_hostname(row[2])
             client.ne_ip = row[3]
@@ -167,18 +167,19 @@ def parse_adsl_csv(filename):
             client.inet_login = parse_inet_login(row[9])
             client.slot = clear_xdsl_slot(row[10])
             client.port = row[11]
+            client.tech = 'ADSL'
             # lira column doesn't exists in adsl csv, ignoring.
             records.append(client)
             counter += 1
             # break
         # Массовое добавление
-        ArgusADSL.objects.bulk_create(records, batch_size=1000)
+        Client.objects.bulk_create(records, batch_size=1000)
     return counter
 
 
 def parse_gpon_csv(filename):
     cursor = connection.cursor()
-    cursor.execute("TRUNCATE argus_ArgusGPON CASCADE;")
+    cursor.execute("DELETE FROM argus_client WHERE tech = 'GPON'")
 
     # По одному объекты вставляются мееедленно. Будем вставлять пачкой
     records = list()
@@ -193,7 +194,7 @@ def parse_gpon_csv(filename):
         counter = 0
         ignored = 0
         for row in reader:
-            client = ArgusGPON()
+            client = Client()
             client.address = row[18]
             client.fio = row[16]
             if client.address == '' or client.fio == '':  # Есть пустые строки, их игнорируем
@@ -212,17 +213,18 @@ def parse_gpon_csv(filename):
                     client.slot = get_gpon_slot(row[6])
                 client.port = row[11]
                 client.lira = row[20]
+                client.tech = 'GPON'
                 records.append(client)
                 counter += 1
                 # break
         # Массовое добавление
-        ArgusGPON.objects.bulk_create(records, batch_size=1000)
+        Client.objects.bulk_create(records, batch_size=1000)
     return counter, ignored
 
 
 def parse_fttx_csv(filename):
     cursor = connection.cursor()
-    cursor.execute("TRUNCATE argus_ArgusFTTX CASCADE;")
+    cursor.execute("DELETE FROM argus_client WHERE tech = 'FTTx'")
 
     # По одному объекты вставляются мееедленно. Будем вставлять пачкой
     records = list()
@@ -237,7 +239,7 @@ def parse_fttx_csv(filename):
         counter = 0
         ignored = 0
         for row in reader:
-            client = ArgusFTTx()
+            client = Client()
             client.address = row[12]
             client.fio = row[11]
             if client.address == '' or client.fio == '':  # Есть пустые строки, их игнорируем
@@ -255,11 +257,12 @@ def parse_fttx_csv(filename):
                 client.slot = 0
                 client.port = clear_fttx_port(row[5])
                 client.lira = row[7]
+                client.tech = 'FTTx'
                 records.append(client)
                 counter += 1
             # break
         # Массовое добавление
-        ArgusFTTx.objects.bulk_create(records, batch_size=1000)
+        Client.objects.bulk_create(records, batch_size=1000)
     return counter, ignored
 
 

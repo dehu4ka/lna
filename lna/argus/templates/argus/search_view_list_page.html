@@ -13,12 +13,12 @@
         <th>IP</th>
         <th>Слот</th>
         <th>Порт</th>
+        <th>Tech</th>
     </tr>
     </thead>
     <tbody>
-
-    {% paginate results.gpon_search_objects as gpon_ports using 'gpon_page' %}
-        {% for port in gpon_ports %}
+    {% paginate results.search_objects as ports %}
+        {% for port in ports %}
             <tr>
                 <td>{{ port.inet_login }}</td>
                 <td>{{ port.iptv_login }}</td>
@@ -31,9 +31,9 @@
                 <td>{{ port.ne_ip }}</td>
                 <td>{{ port.slot }}</td>
                 <td>{{ port.port }}</td>
+                <td>{{ port.tech }}</td>
             </tr>
         {% endfor %}
-
 
     </tbody>
 </table>

@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.shortcuts import render, HttpResponse, redirect
 from el_pagination.views import AjaxListView
 from el_pagination.decorators import page_template
-from .models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU
+from .models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU, Client
 from .forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
 from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv, ip_pattern
 import re
@@ -16,7 +16,7 @@ import re
 
 # Create your views here.
 # Загрузка из CSV файла
-class ADSLImport(LoginRequiredMixin, TemplateView):
+class ClientImport(LoginRequiredMixin, TemplateView):
     template_name = 'argus/adsl.html'
 
     def get(self, request, *args, **kwargs):
@@ -58,107 +58,6 @@ class ADSLImport(LoginRequiredMixin, TemplateView):
         form = ArgusFileUploadForm()
         args = {'form': form}
         return render(request, self.template_name, args)
-
-
-class ADSLView(LoginRequiredMixin, AjaxListView, FormView):
-    context_object_name = 'argus_list'
-    template_name = 'argus/adsl_view.html'
-    page_template = 'argus/adsl_view_list_page.html'
-    form_class = ArgusSearchForm
-    success_url = '/argus/adsl'
-    tech_in_title = 'ADSL'
-
-    @classmethod
-    def get_filter_by_search(cls, query):
-        if query[:4] == '7789':
-            return ArgusADSL.objects.filter(inet_login__contains=query).order_by('inet_login')
-        if query[:5] == '77089':
-            return ArgusADSL.objects.filter(iptv_login__contains=query).order_by('iptv_login')
-        if query[:3] == '349':
-            return ArgusADSL.objects.filter(tel_num__contains=query).order_by('tel_num')
-        return ArgusADSL.objects.filter(fio__icontains=query).order_by('fio')  # case insensitive
-
-    def get_queryset(self):
-        if self.request.method == 'POST':
-            form = ArgusSearchForm(self.request.POST)
-            if form.is_valid():
-                query = form.cleaned_data['input_string']
-                return self.get_filter_by_search(query)
-        if self.request.method == 'GET':
-            input_string = self.request.GET.get('search')
-            if input_string:
-                return self.get_filter_by_search(input_string)
-
-        return ArgusADSL.objects.all().order_by('-id')
-
-    def get_context_data(self, **kwargs):
-        context = super(ADSLView, self).get_context_data(**kwargs)
-        if self.request.method == 'POST':
-            context['form'] = ArgusSearchForm(self.request.POST)
-            context['search'] = self.request.POST['input_string']
-        else:
-            context['form'] = ArgusSearchForm
-        context['fluid_container'] = True
-        context['tech_in_title'] = self.tech_in_title
-        return context
-
-    # OMFG!!!
-    def post(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
-
-
-class FTTxView(ADSLView):
-    tech_in_title = 'FTTx'
-
-    @classmethod
-    def get_filter_by_search(cls, query):
-        if query[:4] == '7789':
-            return ArgusFTTx.objects.filter(inet_login__contains=query).order_by('inet_login')
-        if query[:5] == '77089':
-            return ArgusFTTx.objects.filter(iptv_login__contains=query).order_by('iptv_login')
-        if query.isdigit():
-            return ArgusFTTx.objects.filter(tel_num__contains=query).order_by('tel_num')
-        return ArgusFTTx.objects.filter(fio__icontains=query).order_by('fio')  # case insensitive
-
-    def get_queryset(self):
-        if self.request.method == 'POST':
-            form = ArgusSearchForm(self.request.POST)
-            if form.is_valid():
-                query = form.cleaned_data['input_string']
-                return self.get_filter_by_search(query)
-        if self.request.method == 'GET':
-            input_string = self.request.GET.get('search')
-            if input_string:
-                return self.get_filter_by_search(input_string)
-
-        return ArgusFTTx.objects.all().order_by('-id')
-
-
-class GPONView(ADSLView):
-    tech_in_title = 'GPON'
-
-    @classmethod
-    def get_filter_by_search(cls, query):
-        if query[:4] == '7789':
-            return ArgusGPON.objects.filter(inet_login__contains=query).order_by('inet_login')
-        if query[:5] == '77089':
-            return ArgusGPON.objects.filter(iptv_login__contains=query).order_by('iptv_login')
-        if query.isdigit():
-            return ArgusGPON.objects.filter(tel_num__contains=query).order_by('tel_num')
-        return ArgusGPON.objects.filter(fio__icontains=query).order_by('fio')  # case insensitive
-
-    def get_queryset(self):
-        if self.request.method == 'POST':
-            form = ArgusSearchForm(self.request.POST)
-            if form.is_valid():
-                query = form.cleaned_data['input_string']
-                return self.get_filter_by_search(query)
-        if self.request.method == 'GET':
-            input_string = self.request.GET.get('search')
-            if input_string:
-                return self.get_filter_by_search(input_string)
-
-        return ArgusGPON.objects.all().order_by('-id')
 
 
 class ASTUView(LoginRequiredMixin, FormView, ListView):
@@ -216,8 +115,7 @@ class SearchView(LoginRequiredMixin, AjaxListView, FormView):
     template_name = 'argus/search_view.html'
     form_class = ArgusSearchForm
     success_url = '/argus/find'
-    page_template = 'argus/search_view_list_page_adsl.html'
-    page_template_gpon = 'argus/search_view_list_page_gpon.html'
+    page_template = 'argus/search_view_list_page.html'
 
     def get_queryset(self):
         return None
@@ -242,17 +140,14 @@ class SearchView(LoginRequiredMixin, AjaxListView, FormView):
         return context
 
     def get_results(self, input_string=None):
-        adsl_search_objects = ArgusADSL.objects.all().order_by('id')
-        fttx_search_objects = ArgusFTTx.objects.all().order_by('id')
-        gpon_search_objects = ArgusGPON.objects.all().order_by('id')
+        search_objects = Client.objects.all().order_by('id')
         count = 15
         if input_string:
             if re.findall(ip_pattern, input_string):
-                adsl_search_objects = adsl_search_objects.filter(ne_ip=input_string)
-                gpon_search_objects = gpon_search_objects.filter(ne_ip=input_string)
-                fttx_search_objects = fttx_search_objects.filter(ne_ip=input_string)
+                search_objects = search_objects.filter(ne_ip=input_string)
+
             else:
-                adsl_search_objects = adsl_search_objects.filter(
+                search_objects = search_objects.filter(
                     Q(inet_login__contains=input_string) |
                     Q(iptv_login__contains=input_string) |
                     Q(tel_num__contains=input_string) |
@@ -260,26 +155,8 @@ class SearchView(LoginRequiredMixin, AjaxListView, FormView):
                     Q(fio__icontains=input_string) |
                     Q(hostname__icontains=input_string)
                 )
-                gpon_search_objects = gpon_search_objects.filter(
-                    Q(inet_login__contains=input_string) |
-                    Q(iptv_login__contains=input_string) |
-                    Q(tel_num__contains=input_string) |
-                    Q(address__icontains=input_string) |
-                    Q(fio__icontains=input_string) |
-                    Q(hostname__icontains=input_string)
-                )
-                fttx_search_objects = fttx_search_objects.filter(
-                    Q(inet_login__contains=input_string) |
-                    Q(iptv_login__contains=input_string) |
-                    Q(tel_num__contains=input_string) |
-                    Q(address__icontains=input_string) |
-                    Q(fio__icontains=input_string) |
-                    Q(hostname__icontains=input_string)
-                )
-                count = adsl_search_objects.count() + gpon_search_objects.count() + fttx_search_objects.count()
-            return {'adsl_search_objects': adsl_search_objects, 'gpon_search_objects': gpon_search_objects,
-                    'fttx_search_objects': fttx_search_objects, 'count': count}
-        return {'adsl_search_objects': adsl_search_objects[:5], 'gpon_search_objects': gpon_search_objects[:5],
-                'fttx_search_objects': fttx_search_objects[:5], 'count': count}
+                count = search_objects.count()
+            return {'search_objects': search_objects, 'count': count}
+        return {'search_objects': search_objects[:15], 'count': count}
 
 
