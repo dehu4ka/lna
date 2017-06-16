@@ -13,6 +13,7 @@ class ArgusADSL(models.Model):
     inet_login = models.CharField(max_length=512, db_index=True)
     slot = models.CharField(max_length=512, default='N/A')
     port = models.CharField(max_length=512, default='N/A')
+    lira = models.CharField(max_length=32, default='N/A')
 
 
 class ArgusFTTx(models.Model):

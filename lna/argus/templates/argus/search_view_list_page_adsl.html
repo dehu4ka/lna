@@ -1,0 +1,38 @@
+{% load el_pagination_tags %}
+<table class="table table-striped table-bordered table-hover table-sm">
+    <thead>
+    <tr>
+        <th>Internet</th>
+        <th>IPTV</th>
+        <th>Город</th>
+        <th>Улица, дом</th>
+        <th>Квартира</th>
+        <th>Телефон</th>
+        <th>Ф.И.О.</th>
+        <th>NE</th>
+        <th>IP</th>
+        <th>Слот</th>
+        <th>Порт</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% paginate results.adsl_search_objects as adsl_ports %}
+        {% for port in adsl_ports %}
+            <tr>
+                <td>{{ port.inet_login }}</td>
+                <td>{{ port.iptv_login }}</td>
+                <td>{{ port.city }}</td>
+                <td>{{ port.address }}</td>
+                <td>{{ port.room }}</td>
+                <td>{{ port.tel_num }}</td>
+                <td>{{ port.fio }}</td>
+                <td>{{ port.hostname }}</td>
+                <td>{{ port.ne_ip }}</td>
+                <td>{{ port.slot }}</td>
+                <td>{{ port.port }}</td>
+            </tr>
+        {% endfor %}
+
+    </tbody>
+</table>
+    {% show_more %}

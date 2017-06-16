@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.db.models import Q
 from django.shortcuts import render, HttpResponse, redirect
 from el_pagination.views import AjaxListView
+from el_pagination.decorators import page_template
 from .models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU
 from .forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
 from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv, ip_pattern
@@ -215,7 +216,8 @@ class SearchView(LoginRequiredMixin, AjaxListView, FormView):
     template_name = 'argus/search_view.html'
     form_class = ArgusSearchForm
     success_url = '/argus/find'
-    page_template = 'argus/search_view_list_page.html'
+    page_template = 'argus/search_view_list_page_adsl.html'
+    page_template_gpon = 'argus/search_view_list_page_gpon.html'
 
     def get_queryset(self):
         return None
@@ -236,6 +238,7 @@ class SearchView(LoginRequiredMixin, AjaxListView, FormView):
             context['results'] = self.get_results(self.request.GET.get('search'))
             context['form'] = ArgusSearchForm()
         context['fluid_container'] = True
+        context['gpon_page'] = 'gpon_page'
         return context
 
     def get_results(self, input_string=None):

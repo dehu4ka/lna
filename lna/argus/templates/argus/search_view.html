@@ -24,7 +24,12 @@
         {% endif %}
         </script>
         <div class="endless_page_template">
-            {% include page_template %}
+            <h1>ADSL</h1>
+            {% include "argus/search_view_list_page_adsl.html" %}
+        </div>
+        <div class="endless_page_template">
+            <h1>GPON</h1>
+            {% include "argus/search_view_list_page_gpon.html" %}
         </div>
     </div>
 {% endblock %}

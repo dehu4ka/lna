@@ -16,25 +16,8 @@
     </tr>
     </thead>
     <tbody>
-    {% paginate results.adsl_search_objects as adsl_ports %}
-        {% for port in adsl_ports %}
-            <tr>
-                <td>{{ port.inet_login }}</td>
-                <td>{{ port.iptv_login }}</td>
-                <td>{{ port.city }}</td>
-                <td>{{ port.address }}</td>
-                <td>{{ port.room }}</td>
-                <td>{{ port.tel_num }}</td>
-                <td>{{ port.fio }}</td>
-                <td>{{ port.hostname }}</td>
-                <td>{{ port.ne_ip }}</td>
-                <td>{{ port.slot }}</td>
-                <td>{{ port.port }}</td>
-            </tr>
-        {% endfor %}
 
-
-    {% paginate results.gpon_search_objects as gpon_ports %}
+    {% paginate results.gpon_search_objects as gpon_ports using 'gpon_page' %}
         {% for port in gpon_ports %}
             <tr>
                 <td>{{ port.inet_login }}</td>

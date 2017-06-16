@@ -167,6 +167,7 @@ def parse_adsl_csv(filename):
             client.inet_login = parse_inet_login(row[9])
             client.slot = clear_xdsl_slot(row[10])
             client.port = row[11]
+            # lira column doesn't exists in adsl csv, ignoring.
             records.append(client)
             counter += 1
             # break
