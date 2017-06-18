@@ -1,5 +1,5 @@
 from channels.routing import route
-from net.consumers import ws_connect, ws_message, ws_disconnect
+from lna_net.consumers import ws_connect, ws_message, ws_disconnect
 
 channel_routing = [
     route("websocket.connect", ws_connect),

@@ -17,7 +17,9 @@ urlpatterns = [
     url(r'^accounts/', include('allauth.urls')),
 
     # Your stuff: custom urls includes go here
-    url(r'^argus/', include('argus.urls', namespace='argus'))
+    url(r'^argus/', include('argus.urls', namespace='argus')),
+    url(r'^net/', include('lna_net.urls', namespace='net')),
+
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

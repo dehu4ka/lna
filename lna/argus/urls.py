@@ -9,6 +9,6 @@ from .views import ClientImport, ASTUView, SearchView
 urlpatterns = [
     url(r'^import$', ClientImport.as_view(), name='import'),
     url(r'^astu$', ASTUView.as_view(), name='astu'),
-    url(r'^find', SearchView.as_view(), name='search'),
+    url(r'^find$', SearchView.as_view(), name='search'),
 
 ]

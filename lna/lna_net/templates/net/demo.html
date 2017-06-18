@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}Demo{% endblock %}
+
+{% block content %}
+
+    <div id="status"></div>
+{% endblock %}
+
+{% block javascript %}
+{{ block.super }}
+    <script src="{% static 'js/demo.js' %}"></script>
+
+
+{% endblock %}

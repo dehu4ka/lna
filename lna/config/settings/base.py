@@ -59,8 +59,8 @@ LOCAL_APPS = [
     'lna.users.apps.UsersConfig',
     # Your stuff: custom apps go here
     'argus',
+    'lna_net',
     'lna',
-    'net',
 ]
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -278,6 +278,13 @@ if CELERY_BROKER_URL == 'django://':
     CELERY_RESULT_BACKEND = 'redis://'
 else:
     CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+
+# added by hu4
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+BROKER_URL = 'redis://localhost:6379/0'
+
 ########## END CELERY
 
 

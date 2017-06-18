@@ -1,0 +1,21 @@
+{
+  "name": "lna",
+  "homepage": "https://github.com/dehu4ka/lna",
+  "authors": [
+    "dehu4ka"
+  ],
+  "description": "lna",
+  "main": "",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "socket.io-client": "^2.0.3"
+  }
+}
