@@ -53,3 +53,5 @@ celery
 # Your custom requirements go here
 
 django-el-pagination
+channels
+asgi_redis

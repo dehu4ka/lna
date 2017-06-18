@@ -50,6 +50,7 @@ THIRD_PARTY_APPS = [
     'allauth.account',  # registration
     'allauth.socialaccount',  # registration
     'el_pagination', # el-pagination
+    'channels',  # django channels
 ]
 
 # Apps specific for this project go here.
@@ -59,6 +60,7 @@ LOCAL_APPS = [
     # Your stuff: custom apps go here
     'argus',
     'lna',
+    'net',
 ]
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -86,7 +88,7 @@ MIGRATION_MODULES = {
 # DEBUG
 # ------------------------------------------------------------------------------
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = env.bool('DJANGO_DEBUG', False)
+DEBUG = env.bool('DJANGO_DEBUG', True)
 
 # FIXTURE CONFIGURATION
 # ------------------------------------------------------------------------------
@@ -287,3 +289,14 @@ ADMIN_URL = r'^admin/'
 ALLOWED_HOSTS = ['10.179.9.55', '127.0.0.1', 'localhost']
 
 EL_PAGINATION_PER_PAGE = 10
+
+# Django channels
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "asgi_redis.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)],
+        },
+        "ROUTING": "config.routing.channel_routing",
+    },
+}
