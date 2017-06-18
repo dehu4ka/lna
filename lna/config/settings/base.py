@@ -59,7 +59,7 @@ LOCAL_APPS = [
     'lna.users.apps.UsersConfig',
     # Your stuff: custom apps go here
     'argus',
-    'lna_net',
+    'net',
     'lna',
 ]
 
@@ -272,7 +272,8 @@ LOGIN_URL = 'account_login'
 AUTOSLUG_SLUGIFY_FUNCTION = 'slugify.slugify'
 
 ########## CELERY
-INSTALLED_APPS += ['lna.taskapp.celery.CeleryConfig']
+# apps - disabled
+# INSTALLED_APPS += ['lna.taskapp.celery.CeleryConfig']
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='django://')
 if CELERY_BROKER_URL == 'django://':
     CELERY_RESULT_BACKEND = 'redis://'
