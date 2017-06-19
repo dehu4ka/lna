@@ -3,6 +3,7 @@ import os
 from celery import Celery
 from django.apps import apps, AppConfig
 from django.conf import settings
+import time
 
 
 if not settings.configured:
@@ -11,8 +12,10 @@ if not settings.configured:
 
 
 app = Celery('lna')
+app.config_from_object('django.conf:settings')
+app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
-
+"""
 class CeleryConfig(AppConfig):
     name = 'lna.taskapp'
     verbose_name = 'Celery Config'
@@ -40,9 +43,10 @@ class CeleryConfig(AppConfig):
             raven_register_logger_signal(raven_client)
             raven_register_signal(raven_client)
 
-        
+
 
 
 @app.task(bind=True)
 def debug_task(self):
     print('Request: {0!r}'.format(self.request))  # pragma: no cover
+"""
