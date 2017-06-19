@@ -6,3 +6,9 @@ class NESerializer(serializers.HyperlinkedModelSerializer):
         model = ASTU
         fields = ('id', 'hostname', 'ne_ip', 'vendor', 'model', 'status', )
 
+
+class ListVendorsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ASTU
+        fields = ('vendor', )
+
