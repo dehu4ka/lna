@@ -51,6 +51,7 @@ THIRD_PARTY_APPS = [
     'allauth.socialaccount',  # registration
     'el_pagination', # el-pagination
     'channels',  # django channels
+    'rest_framework',  #DRF
 ]
 
 # Apps specific for this project go here.
@@ -61,6 +62,7 @@ LOCAL_APPS = [
     'argus',
     'net',
     'lna',
+    'api',
 ]
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -308,4 +310,11 @@ CHANNEL_LAYERS = {
         },
         "ROUTING": "config.routing.channel_routing",
     },
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+#    'PAGE_SIZE': 10
 }

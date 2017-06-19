@@ -55,3 +55,4 @@ celery
 django-el-pagination
 channels
 asgi_redis
+djangorestframework

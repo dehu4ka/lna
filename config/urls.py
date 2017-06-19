@@ -19,6 +19,7 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     url(r'^argus/', include('argus.urls', namespace='argus')),
     url(r'^net/', include('net.urls', namespace='net')),
+    url(r'^api/', include('api.urls', namespace='drf')),
 
 
 
