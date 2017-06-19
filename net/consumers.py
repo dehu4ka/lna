@@ -11,6 +11,9 @@ def ws_connect(message):
     # Save room in session and add us to the group
     message.channel_session['room'] = room
     Group("chat-%s" % room).add(message.reply_channel)
+    Group("chat-%s" % message.channel_session['room']).send({
+        "text": 'hello',
+    })
 
 # Connected to websocket.receive
 @channel_session
