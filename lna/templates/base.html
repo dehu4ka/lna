@@ -46,7 +46,7 @@
             </li>
               {% if request.user.is_authenticated %}
                   <li class="nav-item dropdown">
-                      <a class="nav-link dropdown-toggle" href="#" id="navbarArgusDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Аргус</a>
+                      <a class="nav-link dropdown-toggle" href="#" id="navbarArgusDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Техучет</a>
                       <div class="dropdown-menu" aria-labelledby="navbarArgusDropdown">
                           <a class="dropdown-item font-weight-bold {% active_url 'argus:search' %}" href="{% url 'argus:search' %}">Поиск клиента</a>
                           <a class="dropdown-item {% active_url 'argus:astu' %}" href="{% url 'argus:astu' %}">АСТУ</a>

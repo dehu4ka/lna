@@ -4,6 +4,16 @@
 
 {% block content %}
     <form>
+        <div class="row form-inline">
+            <label for="vendors_select">Vendor</label>
+            <select class="form-control" id="vendors_select">
+                <option value="Cisco">Cisco</option>
+            </select>
+            <label for="models_select">Model</label>
+            <select class="form-control" id="models_select">
+                <option value="C2950">C2950</option>
+            </select>
+        </div>
         <div class="row">
             <div class="col-sm-5">
                 <select name="from[]" id="multiselect" class="multiselect form-control" size="8" multiple="multiple">
