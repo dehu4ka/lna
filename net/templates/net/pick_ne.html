@@ -5,23 +5,19 @@
 {% block content %}
     <form>
         <div class="row form-inline">
-            <label for="vendors_select">Vendor</label>
-            <select class="form-control" id="vendors_select">
-                <option value="Cisco">Cisco</option>
+            <label for="vendors_select">Vendor: </label>
+            <select class="form-control w-25" id="vendors_select">
+                <option value="All">All</option>
             </select>
-            <label for="models_select">Model</label>
-            <select class="form-control" id="models_select">
-                <option value="C2950">C2950</option>
+            <label for="models_select">Model: </label>
+            <select class="form-control w-25" id="models_select">
+                <option value="All">All</option>
             </select>
         </div>
         <div class="row">
             <div class="col-sm-5">
                 <select name="from[]" id="multiselect" class="multiselect form-control" size="8" multiple="multiple">
-                    <option value="1">Item 1</option>
-                    <option value="2">Item 5</option>
-                    <option value="2">Item 2</option>
-                    <option value="2">Item 4</option>
-                    <option value="3">Item 3</option>
+
                 </select>
             </div>
 
