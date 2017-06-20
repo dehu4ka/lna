@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User, Group
 from argus.models import ASTU
 from rest_framework import viewsets
-from .serializers import NESerializer, ListVendorsSerializer
+from .serializers import NESerializer, ListVendorsSerializer, ListModelsSerializer
 
 class NEViewSet(viewsets.ModelViewSet):
     queryset = ASTU.objects.all().order_by('id').filter(status='эксплуатация')
@@ -13,3 +13,6 @@ class ListVendors(viewsets.ModelViewSet):
     serializer_class = ListVendorsSerializer
 
 
+class ListModels(viewsets.ModelViewSet):
+    queryset = ASTU.objects.all().order_by('model').distinct('model')
+    serializer_class = ListModelsSerializer

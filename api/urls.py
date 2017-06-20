@@ -1,10 +1,11 @@
 from django.conf.urls import include, url
 from rest_framework import routers
-from .views import NEViewSet, ListVendors
+from .views import NEViewSet, ListVendors, ListModels
 
 router = routers.DefaultRouter()
 router.register(r'ne_list', NEViewSet, 'ne_list')
 router.register(r'vendors', ListVendors, 'vendors')
+router.register(r'models', ListModels, 'models')
 
 
 urlpatterns = [

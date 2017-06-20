@@ -12,3 +12,7 @@ class ListVendorsSerializer(serializers.ModelSerializer):
         model = ASTU
         fields = ('vendor', )
 
+class ListModelsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ASTU
+        fields = ('vendor', 'model', )
