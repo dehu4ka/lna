@@ -39,10 +39,10 @@ $(document).ready(function($) {
     $('#vendors_select').change(function () {
         //console.log('was changed to ' + this.value)
         var filter = $(this).val();
-        filterSelect(filter)
+        filterSelectByVendor(filter)
     });
 
-    function filterSelect(value) {
+    function filterSelectByVendor(value) {
         console.log('filter select - ' + value);
         var list = $("#multiselect option");
         if (value === 'All') {
