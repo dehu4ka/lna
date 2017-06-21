@@ -318,3 +318,5 @@ REST_FRAMEWORK = {
     ],
 #    'PAGE_SIZE': 10
 }
+# for selecting many objects in forms
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None

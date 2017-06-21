@@ -3,7 +3,9 @@
 {% block title %}Выбор задачи для NE{% endblock %}
 
 {% block content %}
-    <form>
+    <h5>Нужно выбрать NE и задачу для него</h5><br />
+    <form action="{% url 'net:do_task' %}" method="post">
+        {% csrf_token %}
         <div class="row form-inline">
             <label for="vendors_select">Vendor: </label>
             <select class="form-control w-25" id="vendors_select">
@@ -29,9 +31,21 @@
             </div>
 
             <div class="col-sm-5">
-                <select name="to[]" id="multiselect_to" class="form-control" size="8" multiple="multiple"></select>
+                <select name="destinations" id="multiselect_to" class="form-control" size="8" multiple="multiple"></select>
             </div>
         </div>
+        <div class="row">
+            <label for="script_select" class="col-sm-2 col-form-label">Выполнить скрипт: </label>
+            <div class="col-sm-10">
+                <select name="script_select" id="script_select" class="form-control w-25">
+                    {% for script in possible_scripts %}
+                        <option value="{{ script.id }}">{{ script.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+    <input type="submit" value="Выполнить" class="btn btn-primary">
     </form>
 {% endblock %}
 
