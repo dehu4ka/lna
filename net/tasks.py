@@ -3,6 +3,7 @@ from lna.taskapp.celery import app
 from argus.models import ASTU
 from .models import Scripts
 import importlib
+import subprocess
 
 log = logging.getLogger(__name__)
 
@@ -24,3 +25,21 @@ def job_starter(ne_id, script_id):
     result = task_module.start(target=ne_obj.ne_ip)
     log.info("Doing " + script_obj.name + ' for ' + ne_obj.ne_ip + '. Result was: ' + str(result))
     return result
+
+
+@app.task()
+def check_online():
+    """
+    Checking NE status with FPING
+    :return:
+    """
+    ne_objects = ASTU.objects.all().filter(status='эксплуатация')
+    fping_ips_str = ''  # ip addresses separated by space for fping
+    for ne in ne_objects:
+        fping_ips_str += str(ne.ne_ip) + " "
+    #  Type of service = 160, only alive, quiet, zero repeat
+    proc = subprocess.Popen(["/sbin/fping -O 160 -a -q -r 0 %s" % fping_ips_str], shell=True, stdout=subprocess.PIPE)
+    proc.wait()
+    out = proc.stdout.read()
+    alive_list = out.decode().split('\n')[:-1]  # everything but the last empty
+    print(alive_list)
