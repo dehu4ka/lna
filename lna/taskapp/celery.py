@@ -14,6 +14,8 @@ if not settings.configured:
 app = Celery('lna')
 app.config_from_object('django.conf:settings')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+app.conf.broker_url = 'redis://localhost:6379/0'
+app.conf.timezone = 'Asia/Yekaterinburg'
 
 """
 class CeleryConfig(AppConfig):

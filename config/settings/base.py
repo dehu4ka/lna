@@ -276,18 +276,20 @@ AUTOSLUG_SLUGIFY_FUNCTION = 'slugify.slugify'
 ########## CELERY
 # apps - disabled
 # INSTALLED_APPS += ['lna.taskapp.celery.CeleryConfig']
+"""
+# Deprecated in celery 4.0
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='django://')
 if CELERY_BROKER_URL == 'django://':
     CELERY_RESULT_BACKEND = 'redis://'
 else:
     CELERY_RESULT_BACKEND = CELERY_BROKER_URL
-
+"""
 # added by hu4
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 # BROKER_URL = 'redis://localhost:6379/0'
-BROKER_URL = 'redis://localhost:6379'
+# BROKER_URL = 'redis://localhost:6379'
 
 ########## END CELERY
 

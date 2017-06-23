@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Задания{% endblock %}
 {% block content %}
-    test
+    <h3>Запущено задание:</h3>
+    <p>{{ script_name }} ({{ script_descr }}) (класс: {{ class_name }})</p>
+    <h3>На следующем оборудовании:</h3>
+    <dl class="row">
+    {% for ne in ne_list %}
+        <dt class="col-sm-6"> {{ ne.hostname }}({{ ne.ne_ip }})</dt><dd class="col-sm-6"> {{ ne.vendor }} {{ ne.model }}</dd>
+    {% endfor %}
+    </dl>
 {% endblock %}

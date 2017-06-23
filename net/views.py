@@ -36,9 +36,23 @@ class DoTask(LoginRequiredMixin, TemplateView):
     def post(self, request):
         destinations_ids = request.POST.getlist('destinations')
         script_id = request.POST['script_select']
+        script_obj = Scripts.objects.get(pk=script_id)
+        script_name = script_obj.name
+        script_descr = script_obj.description
+        class_name = script_obj.class_name
+
+        ne_list = list()  # список объектов и скриптов для передачи в контекст
 
         for dst in destinations_ids:
-            obj=ASTU.objects.get(pk=dst)
+            ne=ASTU.objects.get(pk=dst)
+            ne_list.append(ne)
+            #  Запуск работы
             job_starter.delay(dst, script_id)
+        # context
+        args = dict()
+        args['ne_list'] = ne_list
+        args['script_name'] = script_name
+        args['script_descr'] = script_descr
+        args['class_name'] = class_name
 
-        return render(request, self.template_name)
+        return render(request, self.template_name, args)
