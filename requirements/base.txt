@@ -56,3 +56,4 @@ django-el-pagination
 channels
 asgi_redis
 djangorestframework
+django-celery-beat

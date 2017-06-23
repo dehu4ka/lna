@@ -52,6 +52,8 @@ THIRD_PARTY_APPS = [
     'el_pagination', # el-pagination
     'channels',  # django channels
     'rest_framework',  #DRF
+    'django_celery_beat',  # django-celery-beat extension that stores the schedule in the Django database,
+    # and presents a convenient admin interface to manage periodic tasks at runtime.
 ]
 
 # Apps specific for this project go here.
