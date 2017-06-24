@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from argus.models import ASTU
 
 # Create your models here.
 class Job(models.Model):
@@ -32,3 +33,10 @@ class Scripts(models.Model):
 
     class Meta:
         ordering = ('name', )
+
+class OnlineStatus(models.Model):
+    STATUSES = (('ONLINE', 'Online'), ('OFFLINE', 'Offline'),)
+    astu = models.OneToOneField(ASTU, on_delete=models.CASCADE, primary_key=True)
+    status = models.CharField(max_length=32, choices=STATUSES, default='OFFLINE')
+
+

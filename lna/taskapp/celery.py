@@ -16,6 +16,7 @@ app.config_from_object('django.conf:settings')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 app.conf.broker_url = 'redis://localhost:6379/0'
 app.conf.timezone = 'Asia/Yekaterinburg'
+app.conf.beat_scheduler = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 """
 class CeleryConfig(AppConfig):

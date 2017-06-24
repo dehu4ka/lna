@@ -1,7 +1,7 @@
 import time, logging
 from lna.taskapp.celery import app
 from argus.models import ASTU
-from .models import Scripts
+from net.models import Scripts, OnlineStatus
 import importlib
 import subprocess
 
@@ -42,4 +42,6 @@ def check_online():
     proc.wait()
     out = proc.stdout.read()
     alive_list = out.decode().split('\n')[:-1]  # everything but the last empty
-    print(alive_list)
+    OnlineStatus.objects.all().delete()
+    for alive_ip in alive_list:
+        OnlineStatus.objects.update_or_create(status='ONLINE', astu=ASTU.objects.get(ne_ip=alive_ip))

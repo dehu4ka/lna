@@ -54,6 +54,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',  #DRF
     'django_celery_beat',  # django-celery-beat extension that stores the schedule in the Django database,
     # and presents a convenient admin interface to manage periodic tasks at runtime.
+    'django_celery_results',
 ]
 
 # Apps specific for this project go here.
@@ -290,6 +291,7 @@ else:
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_RESULT_BACKEND = 'django-db'
 # BROKER_URL = 'redis://localhost:6379/0'
 # BROKER_URL = 'redis://localhost:6379'
 
