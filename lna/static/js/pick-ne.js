@@ -11,10 +11,14 @@
             // array of NE's
             var multiselect_text = '';
             data.forEach(function (ne) {
+                var color = '';
+                if (ne.is_online === false){
+                    color = 'text-danger';
+                }
                 multiselect_text += '<option value="' + ne.id + '"' +
                         ' data-vendor="' + ne.vendor + '"' +
                         ' data-model="' + ne.model +'"' +
-                    '>' +
+                        ' class="' + color + '">' +
                     ne.hostname + "(" + ne.ne_ip + ")" + '</option>'
             });
             multiselect.html(multiselect_text);
@@ -74,10 +78,14 @@
         var ne_html = '';
         for (var i=0; i < filtered.length; i++){
             var ne = filtered[i];
+            var color = '';
+                if (ne.is_online === false){
+                    color = 'text-danger';
+                }
             ne_html += '<option value="' + ne.id + '"' +
                         ' data-vendor="' + ne.vendor + '"' +
                         ' data-model="' + ne.model +'"' +
-                        '>' +
+                        ' class="' + color + '">' +
                         ne.hostname + "(" + ne.ne_ip + ")" + '</option>'
         }
         multiselect.html(ne_html);

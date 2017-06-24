@@ -12,7 +12,6 @@ from argus.models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU, Client
 from argus.forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
 from argus.argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv, ip_pattern
 import re
-from net.models import OnlineStatus
 
 # Create your views here.
 # Загрузка из CSV файла

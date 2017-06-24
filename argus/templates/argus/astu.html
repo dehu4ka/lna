@@ -34,7 +34,7 @@
         {% for ne in astu_list %}
             <tr>
                 <td>{{ ne.hostname }}{{ ne.status|status_badge }}
-                {% if ne.online_status.status %}
+                {% if ne.is_online == True %}
                     <i class="fa fa-check text-success" title="online"></i>
                 {% else %}
                     <i class="fa fa-times text-danger" title="offline"></i>

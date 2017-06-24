@@ -76,6 +76,7 @@ class ASTU(models.Model):
     category = models.CharField(max_length=16, default='')
     segment = models.CharField(max_length=512, default='')
     serial_number = models.CharField(max_length=512, default='')
+    is_online = models.BooleanField(default=False)
 
     def __str__(self):
         return self.hostname + " : " + self.ne_ip + " : " + self.vendor + " : " + self.model

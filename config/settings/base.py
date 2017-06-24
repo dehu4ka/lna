@@ -93,8 +93,8 @@ MIGRATION_MODULES = {
 # DEBUG
 # ------------------------------------------------------------------------------
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = env.bool('DJANGO_DEBUG', True)
-
+# DEBUG = env.bool('DJANGO_DEBUG', True)
+DEBUG = False
 # FIXTURE CONFIGURATION
 # ------------------------------------------------------------------------------
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#std:setting-FIXTURE_DIRS
@@ -199,7 +199,6 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     str(APPS_DIR.path('static')),
 ]
-
 # See: https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#staticfiles-finders
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
