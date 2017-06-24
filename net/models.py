@@ -36,7 +36,7 @@ class Scripts(models.Model):
 
 class OnlineStatus(models.Model):
     STATUSES = (('ONLINE', 'Online'), ('OFFLINE', 'Offline'),)
-    astu = models.OneToOneField(ASTU, on_delete=models.CASCADE, primary_key=True)
+    astu = models.OneToOneField(ASTU, on_delete=models.CASCADE, primary_key=True, related_name='online_status')
     status = models.CharField(max_length=32, choices=STATUSES, default='OFFLINE')
 
 

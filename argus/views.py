@@ -8,11 +8,11 @@ from django.db.models import Q
 from django.shortcuts import render, HttpResponse, redirect
 from el_pagination.views import AjaxListView
 from el_pagination.decorators import page_template
-from .models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU, Client
-from .forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
-from .argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv, ip_pattern
+from argus.models import ArgusADSL, ArgusFTTx, ArgusGPON, ASTU, Client
+from argus.forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
+from argus.argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv, ip_pattern
 import re
-
+from net.models import OnlineStatus
 
 # Create your views here.
 # Загрузка из CSV файла
@@ -60,6 +60,7 @@ class ClientImport(LoginRequiredMixin, TemplateView):
         return render(request, self.template_name, args)
 
 
+# Lists NE from ASTU
 class ASTUView(LoginRequiredMixin, FormView, ListView):
     context_object_name = 'astu_list'
     template_name = 'argus/astu.html'

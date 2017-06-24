@@ -1,5 +1,6 @@
 from argus.models import ASTU
 from rest_framework import serializers
+from net.models import OnlineStatus
 
 class NESerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -16,3 +17,8 @@ class ListModelsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ASTU
         fields = ('vendor', 'model', )
+
+class OnlineStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OnlineStatus
+        fields = ('astu_id', 'status')
