@@ -9,4 +9,14 @@
         <dt class="col-sm-6"> {{ ne.hostname }}({{ ne.ne_ip }})</dt><dd class="col-sm-6"> {{ ne.vendor }} {{ ne.model }}</dd>
     {% endfor %}
     </dl>
+
+    {% if active_tasks %}
+        {% for worker in active_tasks %}
+            Worker name: {{ worker }}
+            {% for task in worker %}
+                <p>{{ task.name }} | {{ task.id }}</p>
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+
 {% endblock %}
