@@ -28,7 +28,7 @@
             </td>
             <td>{{ job.script_name }}</td>
             <td>{{ job.created|date:"d.m.Y H:i:s" }}<br />
-                {{ job.completed }}
+                {{ job.completed|date:"d.m.Y H:i:s" }}
             </td>
             <td>{{ job.status }} <br />
                 {% if job.meta.current %}
