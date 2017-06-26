@@ -4,22 +4,32 @@
 
 {% block content %}
     <h2>Список активных заданий</h2>
+    <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+    </form>
+
     <table class="table table-hover">
     <thead><tr>
         <td>Celery ID</td>
         <td>Script Name</td>
-        <td>Created</td>
-        <td>Competed</td>
+        <td>Created / Completed</td>
         <td>Status</td>
         <td>NE (ID)</td>
     </tr></thead>
     <tbody>
     {% for job in job_list %}
         <tr>
-            <td>{{ job.celery_id }}</td>
+            <td>
+            <button type="button" class="btn btn-secondary" title="Celery ID" data-trigger="focus" data-toggle="popover" data-placement="top" data-content="{{ job.celery_id }}">
+                #
+            </button>
+            </td>
             <td>{{ job.script_name }}</td>
-            <td>{{ job.created|date:"d.m.Y H:i:s" }}</td>
-            <td>{{ job.completed }}</td>
+            <td>{{ job.created|date:"d.m.Y H:i:s" }}<br />
+                {{ job.completed }}
+            </td>
             <td>{{ job.status }} <br />
                 {% if job.meta.current %}
                 {% widthratio job.meta.current job.meta.total 100 as percent %}
@@ -29,9 +39,43 @@
                 {% endif %}
             </td>
             <td>{{ job.ne_id.hostname }}<br>({{ job.ne_id.ne_ip }})</td>
-
         </tr>
     {% endfor %}
     </tbody>
     </table>
+
+{% if is_paginated %}
+    <nav>
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+            <li class="page-item"><a href="?page={{ page_obj.previous_page_number }}&task_status={{ task_status }}" class="page-link">&laquo;</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% for i in paginator.page_range %}
+            {% if page_obj.number == i %}
+                <li class="active page-item"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
+            {% else %}
+                <li class="page-item"><a href="?page={{ i }}&task_status={{ task_status }}" class="page-link">{{ i }}</a></li>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+            <li class="page-item"><a href="?page={{ page_obj.next_page_number }}&task_status={{ task_status }}" class="page-link">&raquo;</a></li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+    </ul>
+    </nav>
+{% endif %}
+
+
+{% endblock %}
+
+{% block javascript %}
+    {{ block.super }}
+    <script>
+        $(function () {
+            $('[data-toggle="popover"]').popover()
+        })
+    </script>
 {% endblock %}

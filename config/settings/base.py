@@ -171,7 +171,7 @@ TEMPLATES = [
             # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request', ## It was exists | Also For EL-pagination
+                'django.template.context_processors.request',  # It was exists | Also For EL-pagination
                 'django.contrib.auth.context_processors.auth',
                 'django.template.context_processors.i18n',
                 'django.template.context_processors.media',
@@ -304,7 +304,9 @@ ADMIN_URL = r'^admin/'
 # ------------------------------------------------------------------------------
 ALLOWED_HOSTS = ['10.179.9.55', '127.0.0.1', 'localhost']
 
-EL_PAGINATION_PER_PAGE = 10
+EL_PAGINATION_PER_PAGE = 9
+ENDLESS_PAGINATION_PAGE_LIST_CALLABLE = 'endless_pagination.utils.get_elastic_page_numbers'
+
 
 # Django channels
 CHANNEL_LAYERS = {

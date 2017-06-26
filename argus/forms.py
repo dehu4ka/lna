@@ -1,5 +1,5 @@
 from django import forms
-from .models import ASTU
+from argus.models import ASTU
 
 
 class ArgusFileUploadForm(forms.Form):

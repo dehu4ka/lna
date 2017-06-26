@@ -1,12 +1,15 @@
 from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import TemplateView, ListView
+from django.views.generic import TemplateView, ListView, FormView
 from net.tasks import long_job, job_starter
 from net.scripts.long import start as long
 from django.core.exceptions import PermissionDenied
 from net.models import Scripts, Job
 from argus.models import ASTU
 from lna.taskapp.celery_app import app
+from net.forms import TaskForm
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 
 # Create your views here.
 class Demo(LoginRequiredMixin, TemplateView):
@@ -56,7 +59,7 @@ class DoTask(LoginRequiredMixin, TemplateView):
             job_object.celery_id = job.task_id
             job_object.ne_id = ASTU.objects.get(pk=dst)
             job_object.script_name = script_name
-            job_object.status = 'STARTED'
+            job_object.status = 'PENDING'
             job_object.save()
 
         # context
@@ -66,11 +69,39 @@ class DoTask(LoginRequiredMixin, TemplateView):
         args['script_descr'] = script_descr
         args['class_name'] = class_name
 
-
-
         return render(request, self.template_name, args)
 
 
-class ActiveTasks(LoginRequiredMixin, ListView):
+class ActiveTasks(LoginRequiredMixin, ListView, FormView):
     model = Job
     template_name = 'net/active_tasks.html'
+    form_class = TaskForm
+    paginate_by = 9
+    success_url = '/net/active_tasks'
+
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        if self.request.method == 'POST':
+            form = TaskForm(self.request.POST)
+            if form.is_valid():
+                task_status = form.cleaned_data['task_status']
+                return Job.objects.filter(status=task_status)
+        if self.request.method == 'GET':
+            if self.request.GET.get('task_status') and (self.request.GET.get('task_status') != 'None'):
+                return Job.objects.filter(status=self.request.GET.get('task_status'))
+        return Job.objects.all()
+
+    def get_context_data(self, **kwargs):
+        context = super(ActiveTasks, self).get_context_data(**kwargs)
+        task_status = None
+        if self.request.method == 'POST':
+            form = TaskForm(self.request.POST)
+            if form.is_valid():
+                task_status = form.cleaned_data['task_status']
+        if self.request.method == 'GET':
+            task_status = self.request.GET.get('task_status')
+        context['task_status'] = task_status
+        return context

@@ -15,7 +15,7 @@ class Job(models.Model):
     meta = JSONField(default='')
 
     class Meta:
-        ordering = ('created', )
+        ordering = ('-created', )
 
     def __str__(self):
         return self.name
