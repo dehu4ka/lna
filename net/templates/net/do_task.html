@@ -10,13 +10,5 @@
     {% endfor %}
     </dl>
 
-    {% if active_tasks %}
-        {% for worker in active_tasks %}
-            Worker name: {{ worker }}
-            {% for task in worker %}
-                <p>{{ task.name }} | {{ task.id }}</p>
-            {% endfor %}
-        {% endfor %}
-    {% endif %}
 
 {% endblock %}

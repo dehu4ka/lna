@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from argus.models import ASTU
+from django.contrib.postgres.fields import JSONField
 
 # Create your models here.
 class Job(models.Model):
@@ -10,7 +11,8 @@ class Job(models.Model):
     completed = models.DateTimeField(null=True)
     celery_id = models.CharField(max_length=255)
     script_name = models.CharField(max_length=255, default='')
-    ne_ip = models.GenericIPAddressField(protocol='IPv4', default='0.0.0.0')
+    ne_id = models.ForeignKey(ASTU, on_delete=models.CASCADE)
+    meta = JSONField(default='')
 
     class Meta:
         ordering = ('created', )

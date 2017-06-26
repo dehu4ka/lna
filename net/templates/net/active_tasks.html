@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}Список активных заданий{% endblock %}
+
+{% block content %}
+    <h2>Список активных заданий</h2>
+    <table class="table table-hover">
+    <thead><tr>
+        <td>Celery ID</td>
+        <td>Script Name</td>
+        <td>Created</td>
+        <td>Competed</td>
+        <td>Status</td>
+        <td>NE (ID)</td>
+    </tr></thead>
+    <tbody>
+    {% for job in job_list %}
+        <tr>
+            <td>{{ job.celery_id }}</td>
+            <td>{{ job.script_name }}</td>
+            <td>{{ job.created|date:"d.m.Y H:i:s" }}</td>
+            <td>{{ job.completed }}</td>
+            <td>{{ job.status }} <br />
+                {% if job.meta.current %}
+                {% widthratio job.meta.current job.meta.total 100 as percent %}
+                <div class="progress">
+                    <div class="progress-bar progress-bar-animated progress-bar-striped" role="progressbar" aria-valuenow="{{ percent }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ percent }}%">{{ percent }}%</div>
+                </div>
+                {% endif %}
+            </td>
+            <td>{{ job.ne_id.hostname }}<br>({{ job.ne_id.ne_ip }})</td>
+
+        </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+{% endblock %}

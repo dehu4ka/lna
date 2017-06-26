@@ -1,5 +1,5 @@
 import time, logging
-from lna.taskapp.celery import app
+from lna.taskapp.celery_app import app
 from argus.models import ASTU
 from net.models import Scripts
 import importlib
@@ -47,3 +47,4 @@ def check_online():
         obj = ASTU.objects.get(ne_ip=alive_ip)
         obj.is_online = True
         obj.save()
+    return {'status': 'Completed', 'alive_objects': len(alive_list)}

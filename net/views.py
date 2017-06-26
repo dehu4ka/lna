@@ -1,12 +1,12 @@
 from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, ListView
 from net.tasks import long_job, job_starter
 from net.scripts.long import start as long
 from django.core.exceptions import PermissionDenied
-from net.models import Scripts
+from net.models import Scripts, Job
 from argus.models import ASTU
-from lna.taskapp.celery import app
+from lna.taskapp.celery_app import app
 
 # Create your views here.
 class Demo(LoginRequiredMixin, TemplateView):
@@ -50,7 +50,15 @@ class DoTask(LoginRequiredMixin, TemplateView):
             ne_list.append(ne)
             #  Запуск работы
             # job_starter.delay(dst, script_id)
-            long.delay(dst, script_id)
+            job = long.delay(dst, script_id)
+            print(job.backend)
+            job_object = Job()
+            job_object.celery_id = job.task_id
+            job_object.ne_id = ASTU.objects.get(pk=dst)
+            job_object.script_name = script_name
+            job_object.status = 'STARTED'
+            job_object.save()
+
         # context
         args = dict()
         args['ne_list'] = ne_list
@@ -58,9 +66,11 @@ class DoTask(LoginRequiredMixin, TemplateView):
         args['script_descr'] = script_descr
         args['class_name'] = class_name
 
-        active_tasks = app.control.inspect().active()  # active celery tasks
-        print(active_tasks)
-        args['active_tasks'] = active_tasks
 
 
         return render(request, self.template_name, args)
+
+
+class ActiveTasks(LoginRequiredMixin, ListView):
+    model = Job
+    template_name = 'net/active_tasks.html'
