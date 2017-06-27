@@ -20,6 +20,8 @@ def update_job_status(celery_id=None, state=None, meta=None, result=None):
             job.completed = timezone.now()
     if meta:
         job.meta = meta
+    else:
+        job.meta = ''
     job.save()
     if result:
         job_result, created = JobResult.objects.get_or_create(job_id=job)

@@ -4,19 +4,23 @@
 
 {% block content %}
     <h2>Список активных заданий</h2>
-    <form method="post">
+    <form method="post" class="form-inline">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Submit</button>
+    {{ form }}
+    <button type="submit" class="btn btn-primary">Искать</button>
     </form>
 
+    <form method="get" action="{% url 'net:archive_tasks' %}">
+        <button type="submit" class="btn btn-warning">Архивировать старые</button>
+    </form>
     <table class="table table-hover">
     <thead><tr>
         <td>Celery ID</td>
         <td>Script Name</td>
         <td>Created / Completed</td>
         <td>Status</td>
-        <td>NE (ID)</td>
+        <td>NE</td>
+        <td>Управление</td>
     </tr></thead>
     <tbody>
     {% for job in job_list %}
@@ -30,7 +34,8 @@
             <td>{{ job.created|date:"d.m.Y H:i:s" }}<br />
                 {{ job.completed|date:"d.m.Y H:i:s" }}
             </td>
-            <td>{{ job.status }} <br />
+            <td>{{ job.status }}
+                <br />
                 {% if job.meta.current %}
                 {% widthratio job.meta.current job.meta.total 100 as percent %}
                 <div class="progress">
@@ -39,6 +44,12 @@
                 {% endif %}
             </td>
             <td>{{ job.ne_id.hostname }}<br>({{ job.ne_id.ne_ip }})</td>
+            <td>
+                <button type="button" class="btn btn-outline-secondary btn-sm" title="Обновить"><i class="fa fa-refresh" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Завершить"><i class="fa fa-power-off" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Удалить"><i class="fa fa-trash-o" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-info btn-sm" title="Результат"><i class="fa fa-print" aria-hidden="true"></i></button>
+            </td>
         </tr>
     {% endfor %}
     </tbody>

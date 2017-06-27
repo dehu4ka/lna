@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}Архивация старых заданий{% endblock %}
+
+{% block content %}
+    <form method="post">
+    {% csrf_token %}
+    <p>Вы действительно хотите заархивировать старые задачи и их результаты?</p>
+    <button type="submit" class="btn btn-warning">Заархивировать</button>
+    </form>
+    <br>
+    <br>
+    <p>Вернуться к списку задач?</p>
+    <a class="btn btn-primary" href="{% url 'net:active_tasks' %}">Вернуться</a>
+{% endblock %}

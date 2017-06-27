@@ -7,8 +7,9 @@ from django.core.exceptions import PermissionDenied
 from net.models import Scripts, Job
 from argus.models import ASTU
 from lna.taskapp.celery_app import app
-from net.forms import TaskForm
+from net.forms import TaskForm, ArchiveTasksForm
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib import messages
 
 
 # Create your views here.
@@ -88,11 +89,13 @@ class ActiveTasks(LoginRequiredMixin, ListView, FormView):
             form = TaskForm(self.request.POST)
             if form.is_valid():
                 task_status = form.cleaned_data['task_status']
-                return Job.objects.filter(status=task_status)
+                if task_status != '':
+                    return Job.objects.filter(status=task_status)
+                return Job.objects.all().exclude(status='ARCHIVED')
         if self.request.method == 'GET':
             if self.request.GET.get('task_status') and (self.request.GET.get('task_status') != 'None'):
                 return Job.objects.filter(status=self.request.GET.get('task_status'))
-        return Job.objects.all()
+        return Job.objects.all().exclude(status='ARCHIVED')
 
     def get_context_data(self, **kwargs):
         context = super(ActiveTasks, self).get_context_data(**kwargs)
@@ -104,4 +107,19 @@ class ActiveTasks(LoginRequiredMixin, ListView, FormView):
         if self.request.method == 'GET':
             task_status = self.request.GET.get('task_status')
         context['task_status'] = task_status
+        return context
+
+
+class ArchiveTasks(LoginRequiredMixin, FormView):
+    template_name = 'net/archive_tasks.html'
+    form_class = ArchiveTasksForm
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super(ArchiveTasks, self).get_context_data(**kwargs)
+        if self.request.method == 'POST':
+            Job.objects.filter(status='SUCCESS').update(status='ARCHIVED')
+            messages.add_message(self.request, messages.INFO, 'Архивация выполена')
         return context
