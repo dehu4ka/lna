@@ -45,10 +45,18 @@
             </td>
             <td>{{ job.ne_id.hostname }}<br>({{ job.ne_id.ne_ip }})</td>
             <td>
-                <button type="button" class="btn btn-outline-secondary btn-sm" title="Обновить"><i class="fa fa-refresh" aria-hidden="true"></i></button>
-                <button type="button" class="btn btn-outline-danger btn-sm" title="Завершить"><i class="fa fa-power-off" aria-hidden="true"></i></button>
-                <button type="button" class="btn btn-outline-danger btn-sm" title="Удалить"><i class="fa fa-trash-o" aria-hidden="true"></i></button>
-                <button type="button" class="btn btn-outline-info btn-sm" title="Результат"><i class="fa fa-print" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" title="Обновить" onclick="refresh_task('{{ job.celery_id }}')">
+                    <i class="fa fa-refresh" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Завершить" onclick="terminate_task('{{ job.celery_id }}')">
+                    <i class="fa fa-power-off" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Удалить" onclick="delete_task('{{ job.celery_id }}')">
+                    <i class="fa fa-trash-o" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="btn btn-success btn-sm" title="Результат" onclick="task_result('{{ job.celery_id }}')">
+                    <i class="fa fa-print" aria-hidden="true"></i>
+                </button>
             </td>
         </tr>
     {% endfor %}
@@ -89,4 +97,5 @@
             $('[data-toggle="popover"]').popover()
         })
     </script>
+    <script src="{% static 'js/tasks.js' %}"></script>
 {% endblock %}
