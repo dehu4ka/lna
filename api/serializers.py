@@ -1,5 +1,6 @@
 from argus.models import ASTU
 from rest_framework import serializers
+from net.models import Job
 
 
 class NESerializer(serializers.HyperlinkedModelSerializer):
@@ -17,3 +18,7 @@ class ListModelsSerializer(serializers.ModelSerializer):
         model = ASTU
         fields = ('vendor', 'model', )
 
+class JobModelSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Job
+        fields = ('name', 'status', 'created', 'completed', 'celery_id', 'script_name', 'meta')

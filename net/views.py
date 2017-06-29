@@ -91,11 +91,11 @@ class ActiveTasks(LoginRequiredMixin, ListView, FormView):
                 task_status = form.cleaned_data['task_status']
                 if task_status != '':
                     return Job.objects.filter(status=task_status)
-                return Job.objects.all().exclude(status='ARCHIVED')
+                return Job.objects.all().exclude(status='ARCHIVED').exclude(status='TERMINATED')
         if self.request.method == 'GET':
             if self.request.GET.get('task_status') and (self.request.GET.get('task_status') != 'None'):
                 return Job.objects.filter(status=self.request.GET.get('task_status'))
-        return Job.objects.all().exclude(status='ARCHIVED')
+        return Job.objects.all().exclude(status='ARCHIVED').exclude(status='TERMINATED')
 
     def get_context_data(self, **kwargs):
         context = super(ActiveTasks, self).get_context_data(**kwargs)

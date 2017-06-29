@@ -102,7 +102,7 @@
     </div>
 
     <div class="{% if fluid_container is True %}container-fluid{% else %}container{% endif %}">
-
+    <div id="js_messages"></div>
       {% if messages %}
           {% for message in messages %}
               <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
@@ -117,6 +117,8 @@
       {% block content %}
         <p>Use this document as a way to quick start any new project.</p>
       {% endblock content %}
+
+    <div id="js_messages_bottom"></div>
 
     </div> <!-- /container -->
 

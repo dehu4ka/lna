@@ -24,7 +24,7 @@
     </tr></thead>
     <tbody>
     {% for job in job_list %}
-        <tr>
+        <tr id="job_row_{{ job.id }}">
             <td>
             <button type="button" class="btn btn-secondary" title="Celery ID" data-trigger="focus" data-toggle="popover" data-placement="top" data-content="{{ job.celery_id }}">
                 #
@@ -34,7 +34,7 @@
             <td>{{ job.created|date:"d.m.Y H:i:s" }}<br />
                 {{ job.completed|date:"d.m.Y H:i:s" }}
             </td>
-            <td>{{ job.status }}
+            <td data-status-id="{{ job.id }}" id="status-{{ job.id }}">{{ job.status }}
                 <br />
                 {% if job.meta.current %}
                 {% widthratio job.meta.current job.meta.total 100 as percent %}
@@ -45,16 +45,16 @@
             </td>
             <td>{{ job.ne_id.hostname }}<br>({{ job.ne_id.ne_ip }})</td>
             <td>
-                <button type="button" class="btn btn-outline-secondary btn-sm" title="Обновить" onclick="refresh_task('{{ job.celery_id }}')">
+                <button type="button" class="btn btn-outline-secondary btn-sm" title="Обновить" onclick="refresh_task('{{ job.id }}')">
                     <i class="fa fa-refresh" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="btn btn-outline-danger btn-sm" title="Завершить" onclick="terminate_task('{{ job.celery_id }}')">
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Завершить" onclick="terminate_task('{{ job.id }}')">
                     <i class="fa fa-power-off" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="btn btn-outline-danger btn-sm" title="Удалить" onclick="delete_task('{{ job.celery_id }}')">
+                <button type="button" class="btn btn-outline-danger btn-sm" title="Удалить" onclick="delete_task('{{ job.id }}')">
                     <i class="fa fa-trash-o" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="btn btn-success btn-sm" title="Результат" onclick="task_result('{{ job.celery_id }}')">
+                <button type="button" class="btn btn-success btn-sm" title="Результат" onclick="task_result('{{ job.id }}')">
                     <i class="fa fa-print" aria-hidden="true"></i>
                 </button>
             </td>
