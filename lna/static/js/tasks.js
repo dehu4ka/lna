@@ -76,5 +76,6 @@ function delete_task(task_id) {
 }
 
 function task_result(task_id) {
+    $('#task_result_modal').modal('toggle');
 
 }
