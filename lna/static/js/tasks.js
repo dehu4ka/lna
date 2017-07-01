@@ -79,10 +79,18 @@ function delete_task(task_id) {
     })
 }
 
+var task_modal = $('#task_result_modal');
+var socket;
+
+task_modal.on('hide.bs.modal', function (e) {
+    console.log('Modal is closed, closing websocket');
+    socket.close()
+});
+
 function task_result(task_id) {
-    $('#task_result_modal').modal('toggle');
+    task_modal.modal('toggle');
     $('#modalTaskDetail').attr('href', '/net/task_detail/' + task_id + '/');
-    wsconnect(task_id);
+    socket = wsconnect(task_id);
 }
 
 function wsconnect(task_id) {
@@ -134,4 +142,5 @@ function wsconnect(task_id) {
 
 
     };
+    return socket;
 };
