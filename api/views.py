@@ -37,3 +37,8 @@ class ListTasks(viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_202_ACCEPTED, data='test')
 
+    """def destroy(self, request, *args, **kwargs):
+        self.partial_update(request, *args, **kwargs)
+        super(ListTasks, self).destroy(request, *args, **kwargs)
+
+"""
