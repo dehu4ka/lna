@@ -4,22 +4,22 @@ from django.views.generic import TemplateView, ListView, FormView
 from net.tasks import long_job, job_starter
 from net.scripts.long import start as long
 from django.core.exceptions import PermissionDenied
-from net.models import Scripts, Job
+from net.models import Scripts, Job, Equipment, Credentials
 from argus.models import ASTU
 from lna.taskapp.celery_app import app
 from net.forms import TaskForm, ArchiveTasksForm
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib import messages
-
+from net.equipment.generic import GenericEquipment
 
 # Create your views here.
 class Demo(LoginRequiredMixin, TemplateView):
     template_name = 'net/demo.html'
 
     def get(self, request, *args, **kwargs):
-        task = long_job.delay(111, 111)
-        # print("task id is " + task.id)
-        # super(Demo, self).get(request, *args, **kwargs)
+        cisco = Equipment.objects.get(ne_ip='10.205.18.148')
+        eq = GenericEquipment(cisco)
+        eq.work()
         return render(request, self.template_name, *args, **kwargs)
 
 

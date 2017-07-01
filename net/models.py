@@ -36,4 +36,21 @@ class Scripts(models.Model):
     class Meta:
         ordering = ('name', )
 
+# Login/Pass/Enable credentials
+class Credentials(models.Model):
+    login = models.CharField(max_length=512, default='')
+    passw = models.CharField(max_length=512, default='')
+    enable_password = models.CharField(max_length=512, default='')
+    snmp_community = models.CharField(max_length=512, default='')
+
+
+
+# proven-info model class
+class Equipment(models.Model):
+    hostname = models.CharField(max_length=512, default='', null=True)
+    vendor = models.CharField(max_length=512, default='', null=True)
+    model = models.CharField(max_length=512, default='', null=True)
+    ne_ip = models.GenericIPAddressField(protocol='IPv4', db_index=True, unique=True)
+    credentials = models.ForeignKey(Credentials, on_delete=models.SET_NULL, null=True)
+
 

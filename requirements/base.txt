@@ -58,3 +58,4 @@ asgi_redis
 djangorestframework
 django-celery-beat
 django-celery-results
+netmiko
