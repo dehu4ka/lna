@@ -20,10 +20,15 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
         job.status = state
         if state == 'SUCCESS':
             job.completed = timezone.now()
+
+    # if meta arg is exists, we put in db and later send job/task status update
     if meta:
         job.meta = meta
     else:
-        job.meta = ''
+        # assuming that work is completed
+        meta = {'current': 100, 'total': 100, }
+        job.meta = meta
+
     job.save()
     if result:
         job_result, created = JobResult.objects.get_or_create(job_id=job)
@@ -33,10 +38,11 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
         {"text": json.dumps({
             "script_name": job.script_name,
             "meta": {
-                "current": meta.current,
-                "total": meta.total,
+                "current": meta['current'],
+                "total": meta['total'],
             },
-            "result": result
+            "result": result,
+            'result_update': message
         })}
     )
 

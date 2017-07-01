@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}Просмотр выполнения задания{% endblock %}
+
+{% block content %}
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalTitle">Некий заголовок</h5>
+          </div>
+          <div class="modal-body" id="modalResult">
+          </div>
+            <div class="modal-body" id="modalStatus"></div>
+        </div>
+{% endblock %}
+
+
+{% block javascript %}
+    {{ block.super }}
+    <script src="{% static 'js/reconnecting-websocket.js' %}"></script>
+    <script src="{% static 'js/tasks.js' %}"></script>
+    <script>
+    wsconnect({{ task_id }})
+
+    </script>
+{% endblock %}

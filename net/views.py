@@ -123,3 +123,7 @@ class ArchiveTasks(LoginRequiredMixin, FormView):
             Job.objects.filter(status='SUCCESS').update(status='ARCHIVED')
             messages.add_message(self.request, messages.INFO, 'Архивация выполена')
         return context
+
+
+class TaskDetail(LoginRequiredMixin, TemplateView):
+    template_name = 'net/task_detail.html'

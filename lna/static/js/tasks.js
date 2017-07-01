@@ -1,10 +1,11 @@
 function render_message(msg, msg_class) {
-    msg_html = '<div class="alert alert-' + msg_class + ' alert-dismissible fade show" role="alert">\
+    var messages_bottom = $('#js_messages_bottom');
+    var msg_html = '<div class="alert alert-' + msg_class + ' alert-dismissible fade show" role="alert">\
               <button type="button" class="close" data-dismiss="alert" aria-label="Close">\
                 <span aria-hidden="true">&times;</span>\
               </button>' + msg + '</div>';
-    old_msg_html = $('#js_messages_bottom').html();
-    $('#js_messages_bottom').html(old_msg_html + msg_html)
+    var old_msg_html = messages_bottom.html();
+    messages_bottom.html(old_msg_html + msg_html)
 }
 
 
@@ -51,8 +52,8 @@ function terminate_task(task_id) {
         success: function (result) {
             render_message('Задание ' + task_id + ' остановлено', 'info');
             // And Refreshing task status
-            refresh_task(task_id)
-            // console.log(result)
+            refresh_task(task_id);
+            console.log(result)
         },
         error: function (result) {
             render_message('Ошибка остановки задания ' + task_id + '<br>' +result.responseText, 'error')
@@ -80,8 +81,8 @@ function delete_task(task_id) {
 
 function task_result(task_id) {
     $('#task_result_modal').modal('toggle');
-    wsconnect(task_id)
-
+    $('#modalTaskDetail').attr('href', '/net/task_detail/' + task_id + '/');
+    wsconnect(task_id);
 }
 
 function wsconnect(task_id) {
@@ -107,17 +108,19 @@ function wsconnect(task_id) {
             $('#modalTitle').html(data.script_name)
         }
 
+        var modalStatus = $("#modalStatus");
         if (data.meta && data.meta.current && data.meta.total)  {
             var current = data.meta.current;
             var total = data.meta.total;
             var percent = Math.ceil((current/total)*100);
-            status_html += '<div class="progress"> \
+            var status_html = '<div class="progress"> \
                     <div class="progress-bar progress-bar-animated progress-bar-striped" role="progressbar" \
             aria-valuenow="' + percent + '" aria-valuemin="0" aria-valuemax="100"\
              style="width: ' + percent + '%">' + percent + '%</div>\
                 </div>';
-            $("#modalStatus").html(status_html)
-
+            modalStatus.html(status_html);
+        } else {
+            modalStatus.html('');
         }
         var modalResult = $("#modalResult");
         if (data.result){
@@ -126,19 +129,9 @@ function wsconnect(task_id) {
 
         if (data.result_update) {
             var current_result = modalResult.html();
-            modalResult.html(current_result + data.result_update)
+            modalResult.html(current_result + '<br />' + data.result_update)
         }
 
 
     };
-
-    $("#taskform").on("submit", function(event) {
-        var message = {
-            action: "start_sec3",
-            job_name: $('#task_name').val()
-        };
-        socket.send(JSON.stringify(message));
-        $("#task_name").val('').focus();
-        return false;
-    });
 };

@@ -9,13 +9,14 @@ log = logging.getLogger(__name__)
 
 @shared_task(bind=True)
 def start(self, *args, **kwargs):
-    for i in range(100):
+    RANGE = 60  # how long it will be runs
+    for i in range(RANGE):
         time.sleep(1)
-        log.debug('Tick %s of 100' % str(i))
-        self.update_state(states.STARTED, meta={'current': i, 'total': 100})
-        message_to_user = "current: %s, total: %s)" % (str(i), str(100))
-        update_job_status(self.request.id, state=states.STARTED, meta={'current': i, 'total': 100}, message=message_to_user)
+        log.debug('Tick %s of %s' % (str(i), str(RANGE)))
+        self.update_state(states.STARTED, meta={'current': i, 'total': RANGE})
+        message_to_user = "current: %s, total: %s" % (str(i), str(RANGE))
+        update_job_status(self.request.id, state=states.STARTED, meta={'current': i, 'total': RANGE}, message=message_to_user)
     # meta is JSON field, it cant' be empty
-    update_job_status(self.request.id, state=states.SUCCESS, meta='{}', result='My Mega Long Result', message='DONE!')
+    update_job_status(self.request.id, state=states.SUCCESS, result='My Mega Long Result', message='DONE!')
     self.update_state(states.SUCCESS)
-    return {"status": "Long Task completed", "num_of_seconds": 100}
+    return {"status": "Long Task completed", "num_of_seconds": RANGE}
