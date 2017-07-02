@@ -5,6 +5,9 @@ import re
 import socket
 from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt
 from time import sleep
+from net.libs.colors import Colors
+
+c = Colors()
 
 handler = logging.StreamHandler()
 
@@ -20,11 +23,13 @@ LOGIN_PROMPTS = [
     re.compile(b'username: ', flags=re.I),
     re.compile(b'username:', flags=re.I),
     re.compile(b'login: ', flags=re.I),
+    re.compile(b'login:', flags=re.I),
 
 ]
 
 PASSWORD_PROMPTS = [
     re.compile(b'pass: ', flags=re.I),
+    re.compile(b'pass:', flags=re.I),
     re.compile(b'password: ', flags=re.I),
     re.compile(b'password:', flags=re.I),
 ]
@@ -48,6 +53,7 @@ def setup_logger(name, verbosity=1):
         logger.setLevel(logging.DEBUG)
 
     return logger
+
 
 
 class GenericEquipment(object):
@@ -176,18 +182,30 @@ class GenericEquipment(object):
                 self.equipment_object.credentials = credential  # going to write that to DB
                 self.equipment_object.save()
                 return True
-            self.disconnect()
+            # self.disconnect()
         self.l.info("Couldn't find suggested credentials")
         return False
 
     def expect(self, re_list):
+        """
+        Expecting to find some of RE's in input re_list.
+        :param re_list:
+        :return: Returns telnet output or False if not found
+        """
         str = self.t.expect(re_list, self.io_timeout)
         if str[0] == -1:
             self.l.debug("can't find expected string. Input was: %s", str[2])
             self.l.debug("search was: %s", re_list)
             return False  # not found
         # otherwise string is found, returning it ascii
-        return b2a(str[2])
+        return c.GREEN + c.BOLD + b2a(str[2]) + c.RESET
+        # return str[2]
+
+    def send(self, line):
+        self.l.debug('>>>> sending')
+        self.l.debug(c.RED + c.BOLD + line + c.RESET)
+        self.t.write(a2b(line + "\n"))
+        self.l.debug('>>>> sending end')
 
     def try_to_login(self):
         """
@@ -199,13 +217,14 @@ class GenericEquipment(object):
         if not out:  # we are expecting to see login prompt
             self.l.warning("Can't find login prompt")
             raise NoLoginPrompt
-        self.t.write(a2b(self.username + "\n"))  # sending login
+        self.send(self.username)  # sending login
+        sleep(1)
         out = self.expect(PASSWORD_PROMPTS)
         self.l.debug("expected password prompt: \n%s\n========", out)
         if not out:  # same for password
             self.l.warning("Can't find password prompt")
             raise NoPasswordPrompt
-        self.t.write(a2b(self.passw + "\n"))  # sending password
+        self.send(self.passw)  # sending password
         sleep(2)
         if self.expect(LOGIN_AND_PASSWORD_PROMPTS):  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)

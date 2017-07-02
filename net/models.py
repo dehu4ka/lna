@@ -43,6 +43,9 @@ class Credentials(models.Model):
     enable_password = models.CharField(max_length=512, default='')
     snmp_community = models.CharField(max_length=512, default='')
 
+    class Meta:
+        ordering = ('id', )
+
 
 
 # proven-info model class
