@@ -176,7 +176,7 @@ class GenericEquipment(object):
             # Trying to login with that creds:
             self.username = credential.login
             self.passw = credential.passw
-            self.connect() # connecting
+            self.connect()  # connecting
             if self.try_to_login():  # if login was successful
                 self.l.info('Credentials for %s discovered! L: %s, P: %s', self.ip, self.username, self.passw)
                 self.equipment_object.credentials = credential  # going to write that to DB
@@ -198,14 +198,29 @@ class GenericEquipment(object):
             self.l.debug("search was: %s", re_list)
             return False  # not found
         # otherwise string is found, returning it ascii
-        return c.GREEN + c.BOLD + b2a(str[2]) + c.RESET
+        return b2a(str[2])
         # return str[2]
 
     def send(self, line):
+        """
+        Sends string with ENTER key and do some fancy debug output
+        :param line: string to send to device
+        :return: None
+        """
         self.l.debug('>>>> sending')
         self.l.debug(c.RED + c.BOLD + line + c.RESET)
         self.t.write(a2b(line + "\n"))
         self.l.debug('>>>> sending end')
+
+    def print_recv(self, input_string):
+        """
+        Prints received output to console
+        :param input:
+        :return:
+        """
+        self.l.debug('<<<< received')
+        self.l.debug(c.BOLD + c.GREEN + input_string + c.RESET)
+        self.l.debug('<<<< received end')
 
     def try_to_login(self):
         """
@@ -213,14 +228,16 @@ class GenericEquipment(object):
         :return: False if login attempt was unsuccessful, otherwise - True
         """
         out = self.expect(LOGIN_PROMPTS)
-        self.l.debug("expected login prompt: \n%s\n========", out)
+        self.l.debug("expecting login prompt:")
+        self.print_recv(out)
         if not out:  # we are expecting to see login prompt
             self.l.warning("Can't find login prompt")
             raise NoLoginPrompt
         self.send(self.username)  # sending login
         sleep(1)
         out = self.expect(PASSWORD_PROMPTS)
-        self.l.debug("expected password prompt: \n%s\n========", out)
+        self.l.debug("Expecting password prompt:")
+        self.print_recv(out)
         if not out:  # same for password
             self.l.warning("Can't find password prompt")
             raise NoPasswordPrompt
@@ -229,5 +246,5 @@ class GenericEquipment(object):
         if self.expect(LOGIN_AND_PASSWORD_PROMPTS):  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
             return False
-        self.l.debug("Logged in with L: %s and P: %s!", self.username, self.passw)
+        self.l.debug("Logged in with L: %s and P: %s", self.username, self.passw)
         return True
