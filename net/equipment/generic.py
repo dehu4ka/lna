@@ -3,6 +3,8 @@ from telnetlib import Telnet
 import logging
 import re
 import socket
+from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt
+from time import sleep
 
 handler = logging.StreamHandler()
 
@@ -13,6 +15,21 @@ def a2b(ascii_str):  # ascii to binary
 def b2a(bin_string):  # binary to ascii
     return bin_string.decode('ascii', 'replace')
 
+
+LOGIN_PROMPTS = [
+    re.compile(b'username: ', flags=re.I),
+    re.compile(b'username:', flags=re.I),
+    re.compile(b'login: ', flags=re.I),
+
+]
+
+PASSWORD_PROMPTS = [
+    re.compile(b'pass: ', flags=re.I),
+    re.compile(b'password: ', flags=re.I),
+    re.compile(b'password:', flags=re.I),
+]
+
+LOGIN_AND_PASSWORD_PROMPTS = LOGIN_PROMPTS + PASSWORD_PROMPTS
 
 
 def setup_logger(name, verbosity=1):
@@ -32,6 +49,7 @@ def setup_logger(name, verbosity=1):
 
     return logger
 
+
 class GenericEquipment(object):
     def __init__(self, equipment_object):
         if not isinstance(equipment_object, Equipment):
@@ -49,12 +67,21 @@ class GenericEquipment(object):
         self.pager = self.init_pager()
         self.is_logged = False  # удалось ли авторизоваться
         self.in_configure_mode = False
+        self.io_timeout = 0.5
         if equipment_object.credentials:
             self.username = equipment_object.credentials.login
             self.passw = equipment_object.credentials.passw
         else:
             self.username = ''
             self.passw = ''
+
+    def set_io_timeout(self, io_timeout):
+        """
+        Sets input output timeout global to object
+        :param io_timeout:
+        :return:
+        """
+        self.io_timeout = io_timeout
 
     @staticmethod
     def init_pager():
@@ -135,7 +162,7 @@ class GenericEquipment(object):
         :return:
         True if suggest login and password attempts were successful
         """
-        if resuggest == False and self.equipment_object.credentials:
+        if resuggest is False and self.equipment_object.credentials:
             self.l.info('Credentials are already in the DB')
             return False
         credentials = Credentials.objects.all()
@@ -144,7 +171,7 @@ class GenericEquipment(object):
             self.username = credential.login
             self.passw = credential.passw
             self.connect() # connecting
-            if self.login():  # if login was successful
+            if self.try_to_login():  # if login was successful
                 self.l.info('Credentials for %s discovered! L: %s, P: %s', self.ip, self.username, self.passw)
                 self.equipment_object.credentials = credential  # going to write that to DB
                 self.equipment_object.save()
@@ -152,3 +179,36 @@ class GenericEquipment(object):
             self.disconnect()
         self.l.info("Couldn't find suggested credentials")
         return False
+
+    def expect(self, re_list):
+        str = self.t.expect(re_list, self.io_timeout)
+        if str[0] == -1:
+            self.l.debug("can't find expected string. Input was: %s", str[2])
+            self.l.debug("search was: %s", re_list)
+            return False  # not found
+        # otherwise string is found, returning it ascii
+        return b2a(str[2])
+
+    def try_to_login(self):
+        """
+        Trying to login. First get some login prompt, pushing login, then get some password prompt.
+        :return: False if login attempt was unsuccessful, otherwise - True
+        """
+        out = self.expect(LOGIN_PROMPTS)
+        self.l.debug("expected login prompt: \n%s\n========", out)
+        if not out:  # we are expecting to see login prompt
+            self.l.warning("Can't find login prompt")
+            raise NoLoginPrompt
+        self.t.write(a2b(self.username + "\n"))  # sending login
+        out = self.expect(PASSWORD_PROMPTS)
+        self.l.debug("expected password prompt: \n%s\n========", out)
+        if not out:  # same for password
+            self.l.warning("Can't find password prompt")
+            raise NoPasswordPrompt
+        self.t.write(a2b(self.passw + "\n"))  # sending password
+        sleep(2)
+        if self.expect(LOGIN_AND_PASSWORD_PROMPTS):  # if we are seeing login or password again - our creds are invalid
+            self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
+            return False
+        self.l.debug("Logged in with L: %s and P: %s!", self.username, self.passw)
+        return True
