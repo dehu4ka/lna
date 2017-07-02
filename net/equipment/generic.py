@@ -34,7 +34,12 @@ PASSWORD_PROMPTS = [
     re.compile(b'password:', flags=re.I),
 ]
 
-LOGIN_AND_PASSWORD_PROMPTS = LOGIN_PROMPTS + PASSWORD_PROMPTS
+AUTHENTICATION_FAILED = [
+    re.compile(b'Authentication failed', flags=re.I),  # cisco
+    re.compile(b'Login incorrect', flags=re.I),  # juniper
+    re.compile(b'Bad Password', flags=re.I),  # zyxel
+    re.compile(b'Error: Failed to authenticate', flags=re.I),  # huawei
+]
 
 
 def setup_logger(name, verbosity=1):
@@ -73,7 +78,7 @@ class GenericEquipment(object):
         self.pager = self.init_pager()
         self.is_logged = False  # удалось ли авторизоваться
         self.in_configure_mode = False
-        self.io_timeout = 0.5
+        self.io_timeout = 5
         if equipment_object.credentials:
             self.username = equipment_object.credentials.login
             self.passw = equipment_object.credentials.passw
@@ -101,10 +106,8 @@ class GenericEquipment(object):
         # pagers.append(re.compile(b'return user view with Ctrl\+Z'))
         return pagers
 
-
     def __del__(self):
         self.disconnect()
-
 
     def connect(self):
         """
@@ -176,12 +179,17 @@ class GenericEquipment(object):
             # Trying to login with that creds:
             self.username = credential.login
             self.passw = credential.passw
-            self.connect()  # connecting
-            if self.try_to_login():  # if login was successful
-                self.l.info('Credentials for %s discovered! L: %s, P: %s', self.ip, self.username, self.passw)
-                self.equipment_object.credentials = credential  # going to write that to DB
-                self.equipment_object.save()
-                return True
+
+            if not self.is_connected:
+                self.connect()  # connecting
+            try:
+                if self.try_to_login():  # if login was successful
+                    self.l.info('Credentials for %s discovered! L: %s, P: %s', self.ip, self.username, self.passw)
+                    self.equipment_object.credentials = credential  # going to write that to DB
+                    self.equipment_object.save()
+                    return True
+            except EOFError:
+                self.disconnect()
             # self.disconnect()
         self.l.info("Couldn't find suggested credentials")
         return False
@@ -215,9 +223,14 @@ class GenericEquipment(object):
     def print_recv(self, input_string):
         """
         Prints received output to console
-        :param input:
+        :param input_string: string to color in debug output
         :return:
         """
+        # We are going to print that, so...
+        if input_string is True:
+            input_string = 'True'
+        if input_string is False:
+            input_string = 'False'
         self.l.debug('<<<< received')
         self.l.debug(c.BOLD + c.GREEN + input_string + c.RESET)
         self.l.debug('<<<< received end')
@@ -227,12 +240,13 @@ class GenericEquipment(object):
         Trying to login. First get some login prompt, pushing login, then get some password prompt.
         :return: False if login attempt was unsuccessful, otherwise - True
         """
+        sleep(0.5)
         out = self.expect(LOGIN_PROMPTS)
         self.l.debug("expecting login prompt:")
         self.print_recv(out)
         if not out:  # we are expecting to see login prompt
             self.l.warning("Can't find login prompt")
-            raise NoLoginPrompt
+            # raise NoLoginPrompt
         self.send(self.username)  # sending login
         sleep(1)
         out = self.expect(PASSWORD_PROMPTS)
@@ -243,7 +257,10 @@ class GenericEquipment(object):
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
         sleep(2)
-        if self.expect(LOGIN_AND_PASSWORD_PROMPTS):  # if we are seeing login or password again - our creds are invalid
+        out = self.expect(LOGIN_PROMPTS + PASSWORD_PROMPTS + AUTHENTICATION_FAILED)
+        self.l.debug("Expecting login or password prompt")
+        self.print_recv(out)
+        if out:  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
             return False
         self.l.debug("Logged in with L: %s and P: %s", self.username, self.passw)
