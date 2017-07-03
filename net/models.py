@@ -46,6 +46,9 @@ class Credentials(models.Model):
     class Meta:
         ordering = ('id', )
 
+    def __str__(self):
+        return "Credentials: " + self.login + " / " + self.passw
+
 
 
 # proven-info model class
@@ -56,4 +59,12 @@ class Equipment(models.Model):
     ne_ip = models.GenericIPAddressField(protocol='IPv4', db_index=True, unique=True)
     credentials = models.ForeignKey(Credentials, on_delete=models.SET_NULL, null=True)
 
+
+class EquipmentSuggestCredentials(models.Model):
+    equipment_id = models.ForeignKey(Equipment, on_delete=models.SET_NULL, null=True)  # Equipment foreign key
+    credentials_id = models.ForeignKey(Credentials, on_delete=models.SET_NULL, null=True)  # Credentials FK
+    was_checked = models.BooleanField(default=False)  # True if was unsuccessful attempt to login equipment with provided credentials
+
+    class Meta:
+        ordering = ('equipment_id', )
 

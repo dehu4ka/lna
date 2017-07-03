@@ -1,4 +1,4 @@
-from net.models import Equipment, Credentials
+from net.models import Equipment, Credentials, EquipmentSuggestCredentials
 from telnetlib import Telnet
 import logging
 import re
@@ -38,7 +38,8 @@ AUTHENTICATION_FAILED = [
     re.compile(b'Authentication failed', flags=re.I),  # cisco
     re.compile(b'Login incorrect', flags=re.I),  # juniper
     re.compile(b'Bad Password', flags=re.I),  # zyxel
-    re.compile(b'Error: Failed to authenticate', flags=re.I),  # huawei
+    re.compile(b'Error: Failed to authenticate', flags=re.I),  # huawei no tacacs
+    re.compile(b'Error: Password incorrect', flags=re.I),  # huawei
 ]
 
 
@@ -174,12 +175,17 @@ class GenericEquipment(object):
         if resuggest is False and self.equipment_object.credentials:
             self.l.info('Credentials are already in the DB')
             return False
-        credentials = Credentials.objects.all()
+        credentials = Credentials.objects.all()  # every login/password pairs
         for credential in credentials:
+            # if it was tested, length of this filter will be 0
+            was_it_tested = len(EquipmentSuggestCredentials.objects.filter(credentials_id=credential.id, equipment_id=self.equipment_object.id))
+            if was_it_tested != 0:
+                self.l.debug("Credentials was tested earlier: %s / %s", credential.login, credential.passw)
+                self.l.debug("Skipping this...")
+                continue  # skipping this one
             # Trying to login with that creds:
             self.username = credential.login
             self.passw = credential.passw
-
             if not self.is_connected:
                 self.connect()  # connecting
             try:
@@ -188,9 +194,18 @@ class GenericEquipment(object):
                     self.equipment_object.credentials = credential  # going to write that to DB
                     self.equipment_object.save()
                     return True
+                else:  # In case of Authentication failed
+                    # do not care about results
+                    tested, created = EquipmentSuggestCredentials.\
+                        objects.get_or_create(equipment_id=self.equipment_object, credentials_id=credential)
+                    tested.was_checked=True
+                    tested.save()
+                    self.l.debug("Created EquipmentSuggestCredentials with was_cheked = True for equipment_id=%s, credentials_id=%s ",
+                                 self.equipment_object.id, credential.id)
             except EOFError:
+                self.l.info("Disconnected suddenly")
+                # Unfortunately we can't be sure if disconnect were caused by invalid login or by other circumstances
                 self.disconnect()
-            # self.disconnect()
         self.l.info("Couldn't find suggested credentials")
         return False
 
@@ -203,7 +218,8 @@ class GenericEquipment(object):
         str = self.t.expect(re_list, self.io_timeout)
         if str[0] == -1:
             self.l.debug("can't find expected string. Input was: %s", str[2])
-            self.l.debug("search was: %s", re_list)
+            # line below has very ugly output, so I have to comment it =)
+            # self.l.debug("search was: %s", re_list)
             return False  # not found
         # otherwise string is found, returning it ascii
         return b2a(str[2])
@@ -256,9 +272,10 @@ class GenericEquipment(object):
             self.l.warning("Can't find password prompt")
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
-        sleep(2)
+        sleep(4)
+        self.l.debug("Expecting login or password prompt in case of authentication is failed")
         out = self.expect(LOGIN_PROMPTS + PASSWORD_PROMPTS + AUTHENTICATION_FAILED)
-        self.l.debug("Expecting login or password prompt")
+        print(out)
         self.print_recv(out)
         if out:  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
