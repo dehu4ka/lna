@@ -1,16 +1,12 @@
 from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView, FormView
-from net.tasks import long_job, job_starter
-from net.scripts.long import start as long
 from django.core.exceptions import PermissionDenied
-from net.models import Scripts, Job, Equipment, Credentials
-from argus.models import ASTU
-from lna.taskapp.celery_app import app
+from net.models import Scripts, Job, Equipment
 from net.forms import TaskForm, ArchiveTasksForm
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
+from net.lib import starter
 
 
 # Create your views here.
@@ -41,36 +37,16 @@ class DoTask(LoginRequiredMixin, TemplateView):
         raise PermissionDenied
 
     def post(self, request):
+        """
+        Нужно запустить стартер, который получит на вход список ID назначений, имя скрипта для выполнения, и возможно,
+        какие-то дополнительные аргументы.
+        :param request:
+        :return:
+        """
         destinations_ids = request.POST.getlist('destinations')
         script_id = request.POST['script_select']
-        script_obj = Scripts.objects.get(pk=script_id)
-        script_name = script_obj.name
-        script_descr = script_obj.description
-        class_name = script_obj.class_name
-
-        ne_list = list()  # список объектов и скриптов для передачи в контекст
-
-        for dst in destinations_ids:
-            ne=ASTU.objects.get(pk=dst)
-            ne_list.append(ne)
-            #  Запуск работы
-            # job_starter.delay(dst, script_id)
-            job = long.delay(dst, script_id)
-            print(job.backend)
-            job_object = Job()
-            job_object.celery_id = job.task_id
-            job_object.ne_id = ASTU.objects.get(pk=dst)
-            job_object.script_name = script_name
-            job_object.status = 'PENDING'
-            job_object.save()
-
-        # context
+        starter(destinations_ids, script_id)
         args = dict()
-        args['ne_list'] = ne_list
-        args['script_name'] = script_name
-        args['script_descr'] = script_descr
-        args['class_name'] = class_name
-
         return render(request, self.template_name, args)
 
 

@@ -18,13 +18,14 @@ def long_job(job_id, reply_channel):
     pass
 
 @app.task()
-def job_starter(ne_id, script_id):
-    ne_obj = ASTU.objects.get(pk=ne_id)
+def job_starter(ne_id_list, script_id):
+    """ne_obj = ASTU.objects.get(pk=ne_id)
     script_obj = Scripts.objects.get(pk=script_id)
     task_module = importlib.import_module(script_obj.class_name)
     result = task_module.start(target=ne_obj.ne_ip)
     log.info("Doing " + script_obj.name + ' for ' + ne_obj.ne_ip + '. Result was: ' + str(result))
-    return result
+    return result"""
+
 
 
 @app.task()

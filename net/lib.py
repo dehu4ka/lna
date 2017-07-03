@@ -47,3 +47,5 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
     )
 
 
+def starter(ne_ids, script_id, **kwargs):
+    pass
