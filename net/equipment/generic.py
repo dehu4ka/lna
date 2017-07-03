@@ -187,7 +187,9 @@ class GenericEquipment(object):
             self.username = credential.login
             self.passw = credential.passw
             if not self.is_connected:
-                self.connect()  # connecting
+                if not self.connect():  # connecting
+                    self.l.warning("Can't connect, so we can't suggest login.")
+                    return False
             try:
                 if self.try_to_login():  # if login was successful
                     self.l.info('Credentials for %s discovered! L: %s, P: %s', self.ip, self.username, self.passw)
@@ -206,6 +208,12 @@ class GenericEquipment(object):
                 self.l.info("Disconnected suddenly")
                 # Unfortunately we can't be sure if disconnect were caused by invalid login or by other circumstances
                 self.disconnect()
+            except NoPasswordPrompt:
+                self.l.info("Disconnected suddenly. No Password Prompt were detected")
+                self.disconnect()
+            except NoLoginPrompt:
+                self.l.info("Disconnected suddenly. No Login Prompt were detected")
+                self.disconnect()
         self.l.info("Couldn't find suggested credentials")
         return False
 
@@ -220,6 +228,7 @@ class GenericEquipment(object):
             self.l.debug("can't find expected string. Input was: %s", str[2])
             # line below has very ugly output, so I have to comment it =)
             # self.l.debug("search was: %s", re_list)
+            self.print_recv(b2a(str[2]))
             return False  # not found
         # otherwise string is found, returning it ascii
         return b2a(str[2])
@@ -257,22 +266,22 @@ class GenericEquipment(object):
         :return: False if login attempt was unsuccessful, otherwise - True
         """
         sleep(0.5)
-        out = self.expect(LOGIN_PROMPTS)
         self.l.debug("expecting login prompt:")
+        out = self.expect(LOGIN_PROMPTS)
         self.print_recv(out)
         if not out:  # we are expecting to see login prompt
             self.l.warning("Can't find login prompt")
             # raise NoLoginPrompt
         self.send(self.username)  # sending login
         sleep(1)
-        out = self.expect(PASSWORD_PROMPTS)
         self.l.debug("Expecting password prompt:")
+        out = self.expect(PASSWORD_PROMPTS)
         self.print_recv(out)
         if not out:  # same for password
             self.l.warning("Can't find password prompt")
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
-        sleep(4)
+        sleep(2)
         self.l.debug("Expecting login or password prompt in case of authentication is failed")
         out = self.expect(LOGIN_PROMPTS + PASSWORD_PROMPTS + AUTHENTICATION_FAILED)
         print(out)

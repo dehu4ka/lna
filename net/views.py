@@ -18,7 +18,7 @@ class Demo(LoginRequiredMixin, TemplateView):
     template_name = 'net/demo.html'
 
     def get(self, request, *args, **kwargs):
-        cisco = Equipment.objects.get(ne_ip='10.205.28.1')
+        cisco = Equipment.objects.get(ne_ip='10.205.18.165')
         eq = GenericEquipment(cisco)
         eq.suggest_login(resuggest=True)
         return render(request, self.template_name, *args, **kwargs)
