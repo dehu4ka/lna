@@ -1,20 +1,15 @@
 import time
 import logging
-from lna.taskapp.celery_app import app
 from argus.models import ASTU
-from net.models import Scripts
-import importlib
-from net.scripts.ping import PingScript
 import subprocess
 from celery import current_task, shared_task, states
 from net.lib import update_job_status
 
 
-
 log = logging.getLogger(__name__)
 
 
-@app.task()
+@shared_task
 def long_job(job_id, reply_channel):
     for i in range(3):
         log.info("Tick " + str(i))
@@ -23,7 +18,8 @@ def long_job(job_id, reply_channel):
 
     pass
 
-@app.task()
+
+@shared_task
 def job_starter(ne_id_list, script_id):
     """ne_obj = ASTU.objects.get(pk=ne_id)
     script_obj = Scripts.objects.get(pk=script_id)
@@ -33,8 +29,7 @@ def job_starter(ne_id_list, script_id):
     return result"""
 
 
-
-@app.task()
+@shared_task
 def check_online():
     """
     Checking NE status with FPING
@@ -57,17 +52,17 @@ def check_online():
     return {'status': 'Completed', 'alive_objects': len(alive_list)}
 
 
-@shared_task(bind=True)
+@shared_task
 def login_suggest_task(self):
     log.warning('celery task in login_suggest.py')
 
 
-@shared_task(bind=True)
-def ping_task(self, target='127.0.0.1', **kwargs):
+@shared_task
+def ping_task(target='127.0.0.1', **kwargs):
     log.warning("celery task in ping.py")
 
 
-@shared_task(bind=True)
+@shared_task
 def long_job_task(self, *args, **kwargs):
     RANGE = 60  # how long it will be runs
     for i in range(RANGE):

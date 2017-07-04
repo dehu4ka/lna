@@ -1,7 +1,5 @@
-from celery import current_task, shared_task, states
 import logging
 from .base import BaseScript
-from lna.taskapp.celery_app import app as celery_app
 
 
 
@@ -20,6 +18,3 @@ class LoginSuggest(BaseScript):
         log.warning("def work in LoginSuggest in login_suggest.py")
 
 
-@celery_app.task(bind=True)
-def login_suggest_task(self):
-    log.warning('celery task in login_suggest.py')

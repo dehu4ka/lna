@@ -1,4 +1,3 @@
-from celery import current_task, shared_task, states
 import subprocess
 from .base import BaseScript
 import logging

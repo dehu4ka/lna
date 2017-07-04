@@ -1,19 +1,15 @@
 from argus.models import ASTU
-from django.core import serializers
 import json
 from net.models import Job, JobResult
 from django.utils import timezone
 from channels import Group
-from rest_framework import serializers
-#from net.tasks import ping_task, long_job_task, login_suggest_task
+# from net.tasks import ping_task
+# from net.tasks import long_job_task
+from net.tasks import login_suggest_task
 
-from net.tasks import ping_task, long_job_task, login_suggest_task
 
-
-class NESerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = ASTU
-        fields = ('hostname', 'ne_ip', 'vendor', 'model', 'status', )
+def hui():
+    pass
 
 
 def update_job_status(celery_id, state=None, meta=None, result=None, message=None):
@@ -50,11 +46,12 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
 
 
 def starter(destinations_ids, script_id):
-    if script_id == '1':
+    pass
+    """if script_id == '1':
         # ping
         ping_task.delay(destinations_ids[0])
     if script_id == '2':
         long_job_task.delay()
     if script_id == '3':
-        login_suggest_task(destinations_ids)
-    pass
+        login_suggest_task.delay(destinations_ids)
+    pass"""

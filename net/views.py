@@ -6,7 +6,7 @@ from net.models import Scripts, Job, Equipment
 from net.forms import TaskForm, ArchiveTasksForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
-
+from net.lib import starter
 
 # Create your views here.
 class Demo(LoginRequiredMixin, TemplateView):
