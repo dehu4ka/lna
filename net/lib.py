@@ -1,9 +1,10 @@
 from argus.models import ASTU
 from django.core import serializers
 import json
-from net.models import Job, JobResult
+from net.models import Job, JobResult, Scripts
 from django.utils import timezone
 from channels import Group
+import importlib
 
 
 from rest_framework import serializers
@@ -48,4 +49,18 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
 
 
 def starter(ne_ids, script_id, **kwargs):
+    """
+    Will start script like a Celery job
+    :param ne_ids: List with NE ids, currently from ASTU model
+    :param script_id: Script ID, we will get it from DB
+    :param kwargs: For future use
+    :return:
+    """
+    script = Scripts.objects.get(id=script_id)
+    task = importlib.import_module(script.class_name)
+    # May later we need to do some work with **kwargs
+    task.start.delay(ne_ids)
+
+
+
     pass

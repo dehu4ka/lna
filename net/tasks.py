@@ -49,3 +49,9 @@ def check_online():
         obj.is_online = True
         obj.save()
     return {'status': 'Completed', 'alive_objects': len(alive_list)}
+
+
+@app.task(bind=True)
+def start(self, ne_ids, **kwargs):
+    log.info('login_suggest start')
+    pass
