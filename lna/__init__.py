@@ -3,5 +3,5 @@ __version_info__ = tuple([int(num) if num.isdigit() else num for num in __versio
 
 from lna.taskapp.celery_app import app as celery_app
 
-
 __all__ = ['celery_app']
+

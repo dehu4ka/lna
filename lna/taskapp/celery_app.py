@@ -4,20 +4,21 @@ from django.apps import apps, AppConfig
 from django.conf import settings
 import time
 
-
 if not settings.configured:
     # set the default Django settings module for the 'celery' program.
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')  # pragma: no cover
 
 
 app = Celery('lna')
-app.config_from_object('django.conf:settings')
-app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+app.config_from_object('django.conf:settings', namespace='CELERY')
+# installed_apps = [app_config.name for app_config in apps.get_app_configs()]
+# app.autodiscover_tasks(lambda: installed_apps, force=True)
+
+app.autodiscover_tasks()
 app.conf.broker_url = 'redis://localhost:6379/0'
 app.conf.timezone = 'Asia/Yekaterinburg'
 app.conf.beat_scheduler = 'django_celery_beat.schedulers:DatabaseScheduler'
 # app.conf.result_backend = 'redis'
-
 """
 class CeleryConfig(AppConfig):
     name = 'lna.taskapp'
