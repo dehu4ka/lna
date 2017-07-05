@@ -30,7 +30,7 @@
                 #
             </button>
             </td>
-            <td>{{ job.script_name }}</td>
+            <td>{{ job.script.name }}</td>
             <td>{{ job.created|date:"d.m.Y H:i:s" }}<br />
                 {{ job.completed|date:"d.m.Y H:i:s" }}
             </td>
@@ -43,7 +43,19 @@
                 </div>
                 {% endif %}
             </td>
-            <td>{{ job.ne_id.hostname }}<br>({{ job.ne_id.ne_ip }})</td>
+            <td>
+                {% for ne in job.ne_ids.all|slice:":3" %}
+                    {{ ne.hostname }} ({{ ne.ne_ip }})<br>
+                {% endfor %}
+            {% if job.ne_ids.count > 2 %}
+                <a data-toggle="collapse" href="#ne-{{ job.id }}" aria-expanded="false" aria-controls="collapseExample">>More...</a>
+                <div class="collapse" id="ne-{{ job.id }}">
+                    {% for ne in job.ne_ids.all|slice:"3:" %}
+                        {{ ne.hostname }} ({{ ne.ne_ip }})<br>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            </td>
             <td>
                 <button type="button" class="btn btn-outline-secondary btn-sm" title="Обновить" onclick="refresh_task('{{ job.id }}')">
                     <i class="fa fa-refresh" aria-hidden="true"></i>

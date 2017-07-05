@@ -1,15 +1,9 @@
-from argus.models import ASTU
 import json
-from net.models import Job, JobResult
 from django.utils import timezone
 from channels import Group
-# from net.tasks import ping_task
-# from net.tasks import long_job_task
-from net.tasks import login_suggest_task
-
-
-def hui():
-    pass
+from net.tasks import ping_task, login_suggest_task, long_job_task
+from net.models import Job, JobResult, Scripts
+from argus.models import ASTU
 
 
 def update_job_status(celery_id, state=None, meta=None, result=None, message=None):
@@ -34,7 +28,7 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
         job_result.save()
     Group("task_watcher_%s" % str(job.id)).send(
         {"text": json.dumps({
-            "script_name": job.script_name,
+            "script_name": job.script.name,
             "meta": {
                 "current": meta['current'],
                 "total": meta['total'],
@@ -46,12 +40,20 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
 
 
 def starter(destinations_ids, script_id):
-    pass
-    """if script_id == '1':
+    job = Job()
+    job.script = Scripts.objects.get(id=script_id)
+    if script_id == '1':
         # ping
         ping_task.delay(destinations_ids[0])
     if script_id == '2':
-        long_job_task.delay()
+        task = long_job_task.delay()
     if script_id == '3':
-        login_suggest_task.delay(destinations_ids)
-    pass"""
+        task = login_suggest_task.delay(destinations_ids)
+    job.celery_id = task.task_id
+    job.status = 'PENDING'
+    job.save()
+    for ne in destinations_ids:
+        job.ne_ids.add(ASTU.objects.get(pk=ne))
+    job.save()
+
+    pass

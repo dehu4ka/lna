@@ -17,7 +17,7 @@ def ws_connect(message, task_id):
     message.reply_channel.send ({
         'text': json.dumps({
             'job': job.id,
-            'script_name': job.script_name,
+            'script_name': job.script.name,
             'result': job_result.result,
             'status': job.status,
             'celery_id': job.celery_id

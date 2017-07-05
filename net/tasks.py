@@ -3,8 +3,7 @@ import logging
 from argus.models import ASTU
 import subprocess
 from celery import current_task, shared_task, states
-from net.lib import update_job_status
-
+from lna.taskapp.celery_app import app
 
 log = logging.getLogger(__name__)
 
@@ -18,15 +17,6 @@ def long_job(job_id, reply_channel):
 
     pass
 
-
-@shared_task
-def job_starter(ne_id_list, script_id):
-    """ne_obj = ASTU.objects.get(pk=ne_id)
-    script_obj = Scripts.objects.get(pk=script_id)
-    task_module = importlib.import_module(script_obj.class_name)
-    result = task_module.start(target=ne_obj.ne_ip)
-    log.info("Doing " + script_obj.name + ' for ' + ne_obj.ne_ip + '. Result was: ' + str(result))
-    return result"""
 
 
 @shared_task
@@ -62,8 +52,12 @@ def ping_task(target='127.0.0.1', **kwargs):
     log.warning("celery task in ping.py")
 
 
-@shared_task
+@app.task(bind=True)
 def long_job_task(self, *args, **kwargs):
+    try:
+        from net.lib import update_job_status
+    except:
+        pass
     RANGE = 60  # how long it will be runs
     for i in range(RANGE):
         time.sleep(1)
@@ -75,3 +69,5 @@ def long_job_task(self, *args, **kwargs):
     update_job_status(self.request.id, state=states.SUCCESS, result='My Mega Long Result', message='DONE!')
     self.update_state(states.SUCCESS)
     return {"status": "Long Task completed", "num_of_seconds": RANGE}
+
+

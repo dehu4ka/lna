@@ -8,6 +8,7 @@ from django.contrib import messages
 from net.equipment.generic import GenericEquipment
 from net.lib import starter
 
+
 # Create your views here.
 class Demo(LoginRequiredMixin, TemplateView):
     template_name = 'net/demo.html'
