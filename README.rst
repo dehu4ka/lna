@@ -10,6 +10,9 @@ Lazy Network Admin
 
 :License: MIT
 
+This is proof-of-concept educational project
+--------------------------------------------
+Don't mind about security, input control, debugs via print func etc.
 
 Settings
 --------
