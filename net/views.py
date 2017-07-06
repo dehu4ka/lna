@@ -25,7 +25,7 @@ class PickNE(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(PickNE, self).get_context_data(**kwargs)
-        possible_scripts = Scripts.objects.all()
+        possible_scripts = Scripts.objects.all().exclude(is_hidden=True)
         context['possible_scripts'] = possible_scripts
         return context
 
@@ -119,7 +119,11 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
             form = SubnetForm(self.request.POST)
             if form.is_valid():
                 subnets = form.cleaned_data['subnets'].split("\r\n")  # lists with subnet
-                found, new = scan_nets_with_fping(subnets)
-                context['found'] = found
-                context['new'] = new
+                cast_to_celery = form.cleaned_data['cast_to_celery']
+                if not cast_to_celery:
+                    found, new = scan_nets_with_fping(subnets)
+                    context['found'] = found
+                    context['new'] = new
+                else:
+                    starter(subnets, '999')  # 999 will be send task to celery for subnets scan
         return context

@@ -12,6 +12,7 @@ class Scripts(models.Model):
     class_name = models.CharField(max_length=255)
     possible_vendor = models.CharField(max_length=255)
     possible_model = models.CharField(max_length=255)
+    is_hidden = models.BooleanField(default=False)
 
     class Meta:
         ordering = ('name', )

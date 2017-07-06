@@ -16,9 +16,11 @@ class ArchiveTasksForm(forms.Form):
 class SubnetForm(forms.Form):
     subnets = forms.CharField(widget=forms.Textarea, required=True, label='')
     subnets.widget.attrs = {
-        'placeholder': 'Enter the networks to scan with fping in CIDR format',
+        'placeholder': "Enter the networks to scan with fping in CIDR format\n3 x /24 is OK.\n"
+                       "For more network scan, please push checkbox \"send task to Celery\"",
         'rows': 5,
         'cols': 40,
         'class': 'form-control',
 
     }
+    cast_to_celery = forms.BooleanField(label='Send discovery task to Celery ')

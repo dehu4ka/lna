@@ -57,6 +57,23 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
     )
 
 
+def scan_nets_with_fping_task_version(subnets):
+    # test to avoid double import
+    found, new = 0, 0  # Found Alive IP's and created ones
+    for subnet in subnets:
+        print(subnet)
+        proc = subprocess.Popen(["/sbin/fping -O 160 -a -q -r 0 -g %s" % subnet], shell=True, stdout=subprocess.PIPE)
+        proc.wait()
+        out = proc.stdout.read()
+        alive_list = out.decode().split('\n')[:-1]  # everything but the last empty
+        for ip in alive_list:
+            obj, created = Equipment.objects.get_or_create(ne_ip=ip.split(' ')[0])
+            found += 1
+            if created:
+                new += 1
+    return found, new
+
+
 @shared_task
 def long_job(job_id, reply_channel):
     for i in range(3):
@@ -167,3 +184,29 @@ def long_job_task(self, *args, **kwargs):
     return {"status": "Long Task completed", "num_of_seconds": RANGE}
 
 
+@app.task(bind=True)
+def celery_scan_nets_with_fping(self, subnets=('',)):
+    """
+    Task for scan subnets with fping
+    :param self:
+    :param subnets: list (or tuple, or iterable) with subnets, eg ['10.205.0.0/24', '10.205.1.0/24', ...]
+    :return:
+    """
+    log.warning("celery task in celery_scan_nets_with_fping")
+    update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': len(subnets)},
+                      message='ping task was started')
+    found, new, subnet_counter, result = 0, 0, 0, ''  # counters of alive hosts and loop below counter
+    for subnet in subnets:
+        current_found, current_new = scan_nets_with_fping_task_version(list((subnet, )))  # we send only one subnet to func,
+        # so we can update task status
+        # Everything actually work makes 'scan_nets_with_fping', it will be found alive hosts and put new hosts to DB
+        # So we need only to update task status:
+        subnet_counter += 1
+        found += current_found
+        new += current_new
+        result += "<br>\n" + 'Scan of %s result: %s alive, %s new hosts' % (subnet, current_found, current_new)
+        update_job_status(self.request.id, state=states.STARTED,
+                          meta={'current': subnet_counter, 'total': len(subnets)},
+                          message='Scan of %s result: %s alive, %s new hosts' % (subnet, current_found, current_new))
+    # After loop end:
+    update_job_status(self.request.id, state=states.SUCCESS, result=result)

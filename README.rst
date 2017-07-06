@@ -70,7 +70,7 @@ To run a celery worker:
 .. code-block:: bash
 
     cd lna
-    celery -A lna.taskapp worker -l info
+    celery -A lna.taskapp.celery_app worker -l info -E
     or with flower
     celery -A lna.taskapp flower
 

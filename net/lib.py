@@ -2,17 +2,20 @@ import json
 from django.utils import timezone
 from django.db import transaction
 from channels import Group
-from net.tasks import ping_task, login_suggest_task, long_job_task
+from net.tasks import ping_task, login_suggest_task, long_job_task, celery_scan_nets_with_fping
 from net.models import Job, JobResult, Scripts, Equipment
 from argus.models import ASTU
 import subprocess
+
 
 @transaction.non_atomic_requests
 def starter(destinations_ids, script_id):
     if destinations_ids == list():
         return False
     job = Job()  # new Job model object
+
     job.script = Scripts.objects.get(id=script_id)  # getting related Script object'
+
     if script_id == '1':
         # ping
         task = ping_task.delay(destinations_ids)
@@ -20,6 +23,9 @@ def starter(destinations_ids, script_id):
         task = long_job_task.delay()
     elif script_id == '3':
         task = login_suggest_task.delay(destinations_ids)
+    elif script_id == '999':
+        task = celery_scan_nets_with_fping.delay(subnets=destinations_ids)
+        destinations_ids = list()  # Empty list. We don't need to pick ASTU id's for discovery task
     else:
         return False
     job.celery_id = task.task_id
@@ -45,5 +51,4 @@ def scan_nets_with_fping(subnets):
             found += 1
             if created:
                 new += 1
-                print("New: ",  ip)
     return found, new

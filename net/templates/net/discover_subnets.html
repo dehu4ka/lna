@@ -8,12 +8,18 @@
         <form method="post">
         {% csrf_token %}
         {{ form }}
+            <br>
             <input type="submit" value="Submit" class="btn btn-primary">
         </form>
     {% if new %}
         <div class="card-block">
             <p>Found alive IPs: {{ found }}</p>
             <p>New Equipment object created: {{ new }}</p>
+        </div>
+    {% else %}
+        <div class="card-block">
+            <p>Found alive IPs: {{ found }}</p>
+            <p>No new Equipment object were created</p>
         </div>
     {% endif %}
 {% endblock %}
