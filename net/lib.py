@@ -1,13 +1,13 @@
 import json
 from django.utils import timezone
+from django.db import transaction
 from channels import Group
 from net.tasks import ping_task, login_suggest_task, long_job_task
 from net.models import Job, JobResult, Scripts
 from argus.models import ASTU
 
 
-
-
+@transaction.non_atomic_requests
 def starter(destinations_ids, script_id):
     if destinations_ids == list():
         return False

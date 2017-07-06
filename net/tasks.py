@@ -18,12 +18,14 @@ log = logging.getLogger(__name__)
 
 
 def update_job_status(celery_id, state=None, meta=None, result=None, message=None):
-    try:
-        job = Job.objects.get(celery_id=celery_id)
-    except ObjectDoesNotExist:
-        log.warning('update_job_status: Job object still not exists, sleeping 2 sec')
-        time.sleep(2)
-        job = Job.objects.get(celery_id=celery_id)
+    job_exists = False  # Job in DB doesn't appears instantly. So we need somehow handle that behavior
+    while not job_exists:
+        try:
+            job = Job.objects.get(celery_id=celery_id)
+            job_exists = True
+        except ObjectDoesNotExist:
+            log.warning('update_job_status: Job object still not exists, sleeping 1 sec')
+            time.sleep(1)
     if state:
         job.status = state
         if state == 'SUCCESS':
@@ -55,7 +57,6 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
     )
 
 
-
 @shared_task
 def long_job(job_id, reply_channel):
     for i in range(3):
@@ -64,7 +65,6 @@ def long_job(job_id, reply_channel):
         time.sleep(3)
 
     pass
-
 
 
 @shared_task
@@ -136,10 +136,6 @@ def login_suggest_task(self, destination_ids):
             break
     update_job_status(self.request.id, state=states.SUCCESS, result=task_result, message='DONE!')
     return task_result
-
-
-
-
 
 
 @app.task(bind=True)
