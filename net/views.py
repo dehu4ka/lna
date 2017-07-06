@@ -14,11 +14,11 @@ class Demo(LoginRequiredMixin, TemplateView):
     template_name = 'net/demo.html'
 
     def get(self, request, *args, **kwargs):
-        eq_device = Equipment.objects.get(ne_ip='10.205.18.249')  # equipment object
+        eq_device = Equipment.objects.get(ne_ip='10.205.27.190')  # equipment object
         eq = GenericEquipment(eq_device)
         eq.suggest_login(resuggest=True)
         eq.do_login()
-        eq._discover_prompt()
+        # eq._discover_prompt()
         return render(request, self.template_name, *args, **kwargs)
 
 
@@ -117,11 +117,14 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super(DiscoverSubnets, self).get_context_data(**kwargs)
+        context['new'] = False
+        context['found'] = False
         if self.request.method == 'POST':
             form = SubnetForm(self.request.POST)
             if form.is_valid():
                 subnets = form.cleaned_data['subnets'].split("\r\n")  # lists with subnet
                 cast_to_celery = form.cleaned_data['cast_to_celery']
+                context['cast_to_celery'] = cast_to_celery
                 if not cast_to_celery:
                     found, new = scan_nets_with_fping(subnets)
                     context['found'] = found

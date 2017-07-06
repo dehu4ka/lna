@@ -41,6 +41,7 @@ AUTHENTICATION_FAILED = [
     re.compile(b'Bad Password', flags=re.I),  # zyxel
     re.compile(b'Error: Failed to authenticate', flags=re.I),  # huawei no tacacs
     re.compile(b'Error: Password incorrect', flags=re.I),  # huawei
+    re.compile(b'Invalid user name and password', flags=re.I),  # SNR
 ]
 
 
@@ -352,9 +353,9 @@ class GenericEquipment(object):
         if not self.is_logged:
             self.do_login()
         self.send('')  # sending empty command
-        out = self.t.read_until(b'whatever?', self.io_timeout)
-        self._print_recv(b2a(out))
-        self.prompt = b2a(out).splitlines()[-1]
+        out = self.t.read_until(b'whatever?', self.io_timeout)  # wainting for io_timeout for command promt
+        self._print_recv(b2a(out))  # reading it
+        self.prompt = b2a(out).splitlines()[-1]  # getting it
         self.is_logged = True
         self.l.debug("Discovered the prompt: " + c.BOLD + c.WHITE + self.prompt + c.RESET)
         return self.prompt

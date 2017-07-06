@@ -17,10 +17,12 @@ class SubnetForm(forms.Form):
     subnets = forms.CharField(widget=forms.Textarea, required=True, label='')
     subnets.widget.attrs = {
         'placeholder': "Enter the networks to scan with fping in CIDR format\n3 x /24 is OK.\n"
-                       "For more network scan, please push checkbox \"send task to Celery\"",
+                       "For more network scan, please push checkbox \"send task to Celery\"\n"
+                       "/24 scan took about 30 second, so /16 will be 2+ hours",
         'rows': 5,
         'cols': 40,
         'class': 'form-control',
 
     }
-    cast_to_celery = forms.BooleanField(label='Send discovery task to Celery ')
+    cast_to_celery = forms.BooleanField(label='Send discovery task to Celery ', required=False)
+    sh_ip_bgp = forms.BooleanField(label='output from "sh ip bgp" ', required=False)

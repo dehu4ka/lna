@@ -5,21 +5,58 @@
 {% block content %}
     <h2>Запуск задач обнаружения для подсетей</h2>
     <h5>Подсети в формате CIDR:</h5>
-        <form method="post">
+    <p>Hosts (IP without mask) or netmasks equal /31 or /32 are unacceptable</p>
+        <form method="post" class="form-control">
         {% csrf_token %}
-        {{ form }}
-            <br>
+        {{ form.as_p }}
+            <a class="btn btn-outline-warning" data-toggle="collapse" href="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+                Learn more about 'sh ip bgp' format
+            </a>
+            <div class="collapse" id="collapseExample">
+                <br><strong>Below is not implemented yet :TODO:</strong><br><br>
+                <pre>
+We got its output from our router, from command like ``<strong>sh ip bgp vpnv4 vrf <mark>_vrf_name_</mark> | i <mark>_mngt_subnet_</mark></strong>``
+
+Example:
+
+XXX-PE-1#sh ip bgp vpnv4 vrf ZZZZ-MNG | i 10.206
+ *>  10.179.35.0/24   10.206.4.120             0         32768 ?
+ * i 10.206.0.7/32    10.237.149.3             0    100      0 ?
+ * i 10.206.0.42/32   10.237.149.3             0    100      0 ?
+ *>  10.206.0.128/25  0.0.0.0                  0         32768 ?
+ * i 10.206.0.224/30  10.237.149.50            0    100      0 ?
+ * i 10.206.0.228/30  10.237.149.5             0    100      0 ?
+ * i 10.206.0.232/30  10.237.149.4             0    100      0 ?
+ * i 10.206.0.240/32  10.237.149.5             0    100      0 ?
+ *>i 10.206.0.241/32  10.237.149.4             0    100      0 ?
+ *>  10.206.2.128/25  0.0.0.0                  0         32768 ?
+ *>i 10.206.3.128/25  10.237.149.4             0    100      0 ?
+ *>  10.206.4.0/24    0.0.0.0                  0         32768 ?
+ * i 10.206.4.240/32  10.237.152.10                 100      0 i
+ * i 10.206.4.252/32  10.237.152.10                 100      0 i
+ *>  10.206.5.0/24    0.0.0.0                  0         32768 ?
+ *>  10.206.6.0/29    0.0.0.0                  0         32768 ?
+ * i 10.206.10.0/30   10.237.152.10                 100      0 i
+ * i 10.206.10.8/29   10.237.149.50            0    100      0 ?
+ * i 10.206.11.0/25   10.237.152.10                 100      0 i
+ * i 10.206.12.0/24   10.237.149.5             0    100      0 ?
+ *>i 10.206.100.100/32
+ *>  10.227.128.91/32 10.206.0.135             0         32768 ?
+
+                </pre>
+            </div><br>
             <input type="submit" value="Submit" class="btn btn-primary">
         </form>
-    {% if new %}
-        <div class="card-block">
-            <p>Found alive IPs: {{ found }}</p>
-            <p>New Equipment object created: {{ new }}</p>
-        </div>
+    <div class="card-block">
+    {% if cast_to_celery %}
+        <p>Discovery task was sent to Celery</p>
     {% else %}
-        <div class="card-block">
+        {% if found > 0 %}
             <p>Found alive IPs: {{ found }}</p>
-            <p>No new Equipment object were created</p>
-        </div>
+        {% endif %}
+        {% if new > 0 %}
+            <p>New Equipment object created: {{ new }}</p>
+        {% endif %}
     {% endif %}
+    </div>
 {% endblock %}
