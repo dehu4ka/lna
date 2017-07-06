@@ -3,10 +3,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView, FormView
 from django.core.exceptions import PermissionDenied
 from net.models import Scripts, Job, Equipment
-from net.forms import TaskForm, ArchiveTasksForm
+from net.forms import TaskForm, ArchiveTasksForm, SubnetForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
-from net.lib import starter
+from net.lib import starter, scan_nets_with_fping
 
 
 # Create your views here.
@@ -104,3 +104,22 @@ class ArchiveTasks(LoginRequiredMixin, FormView):
 
 class TaskDetail(LoginRequiredMixin, TemplateView):
     template_name = 'net/task_detail.html'
+
+
+class DiscoverSubnets(LoginRequiredMixin, FormView):
+    template_name = 'net/discover_subnets.html'
+    form_class = SubnetForm
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super(DiscoverSubnets, self).get_context_data(**kwargs)
+        if self.request.method == 'POST':
+            form = SubnetForm(self.request.POST)
+            if form.is_valid():
+                subnets = form.cleaned_data['subnets'].split("\r\n")  # lists with subnet
+                found, new = scan_nets_with_fping(subnets)
+                context['found'] = found
+                context['new'] = new
+        return context

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}Discover Subnets{% endblock %}
+
+{% block content %}
+    <h2>Запуск задач обнаружения для подсетей</h2>
+    <h5>Подсети в формате CIDR:</h5>
+        <form method="post">
+        {% csrf_token %}
+        {{ form }}
+            <input type="submit" value="Submit" class="btn btn-primary">
+        </form>
+    {% if new %}
+        <div class="card-block">
+            <p>Found alive IPs: {{ found }}</p>
+            <p>New Equipment object created: {{ new }}</p>
+        </div>
+    {% endif %}
+{% endblock %}

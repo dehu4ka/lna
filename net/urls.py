@@ -1,5 +1,5 @@
 from django.conf.urls import include, url
-from net.views import Demo, PickNE, DoTask, ActiveTasks, ArchiveTasks, TaskDetail
+from net.views import Demo, PickNE, DoTask, ActiveTasks, ArchiveTasks, TaskDetail, DiscoverSubnets
 
 urlpatterns = [
     url(r'^demo$', Demo.as_view(), name='demo'),
@@ -7,5 +7,6 @@ urlpatterns = [
     url(r'^do_task', DoTask.as_view(), name='do_task'),
     url(r'^active_tasks', ActiveTasks.as_view(), name='active_tasks'),
     url(r'^archive_tasks', ArchiveTasks.as_view(), name='archive_tasks'),
-    url(r'^task_detail/(?P<task_id>[0-9]+)/$', TaskDetail.as_view(), name='task_detail')
+    url(r'^task_detail/(?P<task_id>[0-9]+)/$', TaskDetail.as_view(), name='task_detail'),
+    url(r'^discover_subnets$', DiscoverSubnets.as_view(), name='discover_subnets'),
 ]
