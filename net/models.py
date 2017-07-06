@@ -59,12 +59,12 @@ class Equipment(models.Model):
     vendor = models.CharField(max_length=512, default='', null=True)
     model = models.CharField(max_length=512, default='', null=True)
     ne_ip = models.GenericIPAddressField(protocol='IPv4', db_index=True, unique=True)
-    credentials = models.ForeignKey(Credentials, on_delete=models.SET_NULL, null=True)
+    credentials = models.ForeignKey(Credentials, on_delete=models.CASCADE, null=True)
 
 
 class EquipmentSuggestCredentials(models.Model):
-    equipment_id = models.ForeignKey(Equipment, on_delete=models.SET_NULL, null=True)  # Equipment foreign key
-    credentials_id = models.ForeignKey(Credentials, on_delete=models.SET_NULL, null=True)  # Credentials FK
+    equipment_id = models.ForeignKey(Equipment, on_delete=models.CASCADE, null=True)  # Equipment foreign key
+    credentials_id = models.ForeignKey(Credentials, on_delete=models.CASCADE, null=True)  # Credentials FK
     # True if was unsuccessful attempt to login equipment with provided credentials
     was_checked = models.BooleanField(default=False)
 

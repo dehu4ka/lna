@@ -36,6 +36,7 @@ PASSWORD_PROMPTS = [
 
 AUTHENTICATION_FAILED = [
     re.compile(b'Authentication failed', flags=re.I),  # cisco
+    re.compile(b'Password incorrect', flags=re.I),  # cisco
     re.compile(b'Login incorrect', flags=re.I),  # juniper
     re.compile(b'Bad Password', flags=re.I),  # zyxel
     re.compile(b'Error: Failed to authenticate', flags=re.I),  # huawei no tacacs
@@ -59,7 +60,6 @@ def setup_logger(name, verbosity=1):
         logger.setLevel(logging.DEBUG)
 
     return logger
-
 
 
 class GenericEquipment(object):
@@ -170,10 +170,16 @@ class GenericEquipment(object):
         Подбирает логин и пароль из списка в БД
         :param resuggest: If we already have credentials in the DB and still want to try new suggestions
         :return:
-        True if suggest login and password attempts were successful
+        Dict with IP, Login, Pass if suggestion was successful
+        False if we can't suggest login/pass
         """
         if resuggest is False and self.equipment_object.credentials:
             self.l.info('Credentials are already in the DB')
+            return {
+                        'ip': self.ip,
+                        'login': self.username,
+                        'password': self.passw
+                    }
             return False
         credentials = Credentials.objects.all()  # every login/password pairs
         for credential in credentials:
@@ -195,12 +201,17 @@ class GenericEquipment(object):
                     self.l.info('Credentials for %s discovered! L: %s, P: %s', self.ip, self.username, self.passw)
                     self.equipment_object.credentials = credential  # going to write that to DB
                     self.equipment_object.save()
-                    return True
+                    # return True
+                    return {
+                        'ip': self.ip,
+                        'login': self.username,
+                        'password': self.passw
+                    }
                 else:  # In case of Authentication failed
                     # do not care about results
                     tested, created = EquipmentSuggestCredentials.\
                         objects.get_or_create(equipment_id=self.equipment_object, credentials_id=credential)
-                    tested.was_checked=True
+                    tested.was_checked = True
                     tested.save()
                     self.l.debug("Created EquipmentSuggestCredentials with was_cheked = True for equipment_id=%s, credentials_id=%s ",
                                  self.equipment_object.id, credential.id)
