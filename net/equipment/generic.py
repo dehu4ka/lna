@@ -3,7 +3,7 @@ from telnetlib import Telnet
 import logging
 import re
 import socket
-from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt
+from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt, NoKnownPassword
 from time import sleep
 from net.libs.colors import Colors
 
@@ -49,7 +49,8 @@ def setup_logger(name, verbosity=1):
     Basic logger
     """
     # formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
-    formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(fmt='%(message)s')  # looks very very better for telnet sessions
     handler.setFormatter(formatter)
 
     # Set up main logger
@@ -79,13 +80,17 @@ class GenericEquipment(object):
         self.pager = self.init_pager()
         self.is_logged = False  # удалось ли авторизоваться
         self.in_configure_mode = False
-        self.io_timeout = 5
+        self.io_timeout = 0.5
         if equipment_object.credentials:
             self.username = equipment_object.credentials.login
             self.passw = equipment_object.credentials.passw
         else:
-            self.username = ''
-            self.passw = ''
+            self.username = False
+            self.passw = False
+
+    def _sleep(self, timeout=1.0):
+        self.l.debug("Sleeping for " + str(timeout) + " sec")
+        sleep(timeout)
 
     def set_io_timeout(self, io_timeout):
         """
@@ -180,7 +185,6 @@ class GenericEquipment(object):
                         'login': self.username,
                         'password': self.passw
                     }
-            return False
         credentials = Credentials.objects.all()  # every login/password pairs
         for credential in credentials:
             # if it was tested, length of this filter will be 0
@@ -201,6 +205,7 @@ class GenericEquipment(object):
                     self.l.info('Credentials for %s discovered! L: %s, P: %s', self.ip, self.username, self.passw)
                     self.equipment_object.credentials = credential  # going to write that to DB
                     self.equipment_object.save()
+                    self.disconnect()  # Disconnecting for to be sure about connect/disconnect status
                     # return True
                     return {
                         'ip': self.ip,
@@ -239,7 +244,7 @@ class GenericEquipment(object):
             self.l.debug("can't find expected string. Input was: %s", str[2])
             # line below has very ugly output, so I have to comment it =)
             # self.l.debug("search was: %s", re_list)
-            self.print_recv(b2a(str[2]))
+            self._print_recv(b2a(str[2]))
             return False  # not found
         # otherwise string is found, returning it ascii
         return b2a(str[2])
@@ -256,7 +261,7 @@ class GenericEquipment(object):
         self.t.write(a2b(line + "\n"))
         self.l.debug('>>>> sending end')
 
-    def print_recv(self, input_string):
+    def _print_recv(self, input_string):
         """
         Prints received output to console
         :param input_string: string to color in debug output
@@ -276,29 +281,80 @@ class GenericEquipment(object):
         Trying to login. First get some login prompt, pushing login, then get some password prompt.
         :return: False if login attempt was unsuccessful, otherwise - True
         """
-        sleep(0.5)
+        self._sleep(0.5)
         self.l.debug("expecting login prompt:")
         out = self.expect(LOGIN_PROMPTS)
-        self.print_recv(out)
+        self._print_recv(out)
         if not out:  # we are expecting to see login prompt
             self.l.warning("Can't find login prompt")
             # raise NoLoginPrompt
         self.send(self.username)  # sending login
-        sleep(1)
+        self._sleep(1)
         self.l.debug("Expecting password prompt:")
         out = self.expect(PASSWORD_PROMPTS)
-        self.print_recv(out)
+        self._print_recv(out)
         if not out:  # same for password
             self.l.warning("Can't find password prompt")
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
-        sleep(2)
+        self._sleep(2)  # 2 seconds because most equipment have big timeout after unsuccessful login
         self.l.debug("Expecting login or password prompt in case of authentication is failed")
         out = self.expect(LOGIN_PROMPTS + PASSWORD_PROMPTS + AUTHENTICATION_FAILED)
         print(out)
-        self.print_recv(out)
+        self._print_recv(out)
         if out:  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
             return False
         self.l.debug("Logged in with L: %s and P: %s", self.username, self.passw)
         return True
+
+    def do_login(self):
+        """
+        Assuming that we are already know valid login and password from login_suggest.
+        So, we need to login to device
+        :return: True. Or Exception if something was wrong
+        """
+        if self.passw is False:
+            raise NoKnownPassword
+
+        if self.is_connected:
+            self.disconnect()
+        self.connect()  # connecting
+        out = self.expect(LOGIN_PROMPTS)  # we need to wait for login prompt
+        self._print_recv(out)  # debug out
+        self.send(self.username)  # sending known username
+        out = self.expect(PASSWORD_PROMPTS)  # waiting for password prompt
+        self._print_recv(out)  # debug out
+        self.send(self.passw)  # sending known password
+        self._sleep(0.5)  # waiting for possible tacacs timeout
+        """self.l.debug("We must be logged in now...")
+        out = self.t.read_eager()  # and reading output
+        self._print_recv(b2a(out))  # then printing it
+        self.send('')  # sending empty command
+        # in normal life, if we send <CR> after login, we will got a prompt
+        self._sleep(3)  # small timeout
+        out = self.t.read_eager()
+        self._print_recv(b2a(out))  # debugging
+        self.l.debug("one more attempt to receive something")
+        self._sleep(3)  # small timeout
+        out = self.t.read_eager()
+        self.prompt = b2a(out)"""
+        self.is_logged = True
+        # it seems that old code is better than a new one -> _discover_prompt()
+        self._discover_prompt()
+        return True
+
+    def _discover_prompt(self):
+        """
+        Discovers commant prompt. Or configure prompt. Send Enter <CR> and waits wor result
+        :return:
+        """
+        if not self.is_logged:
+            self.do_login()
+        self.send('')  # sending empty command
+        out = self.t.read_until(b'whatever?', self.io_timeout)
+        self._print_recv(b2a(out))
+        self.prompt = b2a(out).splitlines()[-1]
+        self.is_logged = True
+        self.l.debug("Discovered the prompt: " + c.BOLD + c.WHITE + self.prompt + c.RESET)
+        return self.prompt
