@@ -230,9 +230,6 @@ Gunicorn
 
 .. code-block:: bash
 
-sudo systemctl start gunicorn
-sudo systemctl enable gunicorn
-
     [Unit]
     Description=gunicorn daemon
     After=network.target
@@ -246,4 +243,7 @@ sudo systemctl enable gunicorn
     [Install]
     WantedBy=multi-user.target
 
+.. code-block:: bash
 
+    sudo systemctl start gunicorn
+    sudo systemctl enable gunicorn
