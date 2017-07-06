@@ -100,6 +100,9 @@ Please note: For Celery's import magic to work, it is important *where* the cele
     WantedBy=multi-user.target
 
 /etc/systemd/system/celerybeat.service
+
+.. code-block:: bash
+
     [Unit]
     Description=Celery beat
     After=network.target celery.service
@@ -122,6 +125,8 @@ Please note: For Celery's import magic to work, it is important *where* the cele
     WantedBy=multi-user.target
 
 /etc/celery.conf
+
+.. code-block:: bash
 
     # See
     # http://docs.celeryproject.org/en/latest/tutorials/daemonizing.html#available-options
@@ -189,6 +194,8 @@ Nginx config
 
 Guide at https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-centos-7
 
+.. code-block:: bash
+
     server {
     listen 80;
     server_name 10.179.9.55;
@@ -218,7 +225,11 @@ Guide at https://www.digitalocean.com/community/tutorials/how-to-set-up-django-w
 
 Gunicorn
 --------
+
 /etc/systemd/system/gunicorn.service
+
+.. code-block:: bash
+
 sudo systemctl start gunicorn
 sudo systemctl enable gunicorn
 
