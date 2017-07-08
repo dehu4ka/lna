@@ -14,11 +14,12 @@ class Demo(LoginRequiredMixin, TemplateView):
     template_name = 'net/demo.html'
 
     def get(self, request, *args, **kwargs):
-        eq_device = Equipment.objects.get(ne_ip='10.205.27.190')  # equipment object
+        eq_device = Equipment.objects.get(ne_ip='10.205.18.149')  # equipment object
         eq = GenericEquipment(eq_device)
-        eq.suggest_login(resuggest=True)
+        # eq.suggest_login(resuggest=True)
+
         eq.do_login()
-        # eq._discover_prompt()
+        eq.discover_vendor()
         return render(request, self.template_name, *args, **kwargs)
 
 
@@ -58,7 +59,6 @@ class ActiveTasks(LoginRequiredMixin, ListView, FormView):
     form_class = TaskForm
     paginate_by = 9
     success_url = '/net/active_tasks'
-
 
     def post(self, request, *args, **kwargs):
         return self.get(request, *args, **kwargs)

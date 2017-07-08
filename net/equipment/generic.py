@@ -3,7 +3,7 @@ from telnetlib import Telnet
 import logging
 import re
 import socket
-from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt, NoKnownPassword
+from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt, NoKnownPassword, NoLoggedIn
 from time import sleep
 from net.libs.colors import Colors
 
@@ -81,13 +81,13 @@ class GenericEquipment(object):
         self.pager = self.init_pager()
         self.is_logged = False  # удалось ли авторизоваться
         self.in_configure_mode = False
-        self.io_timeout = 0.5
+        self.io_timeout = 0.5  # timeout between entering CMD and waiting for output
         if equipment_object.credentials:
             self.username = equipment_object.credentials.login
             self.passw = equipment_object.credentials.passw
         else:
-            self.username = False
-            self.passw = False
+            self.username = None
+            self.passw = None
 
     def _sleep(self, timeout=1.0):
         self.l.debug("Sleeping for " + str(timeout) + " sec")
@@ -189,12 +189,16 @@ class GenericEquipment(object):
         credentials = Credentials.objects.all()  # every login/password pairs
         for credential in credentials:
             # if it was tested, length of this filter will be 0
-            was_it_tested = len(EquipmentSuggestCredentials.objects.filter(credentials_id=credential.id, equipment_id=self.equipment_object.id))
+            was_it_tested = len(EquipmentSuggestCredentials.objects.filter(credentials_id=credential.id,
+                                                                           equipment_id=self.equipment_object.id))
             if was_it_tested != 0:
                 self.l.debug("Credentials was tested earlier: %s / %s", credential.login, credential.passw)
                 self.l.debug("Skipping this...")
                 continue  # skipping this one
             # Trying to login with that creds:
+            self.l.info("SUGGESTING LOGIN | Trying to login with L: %s, P: %s" % (c.YELLOW + credential.login + c.RESET,
+                                                                                  c.PURPLE + credential.passw +
+                                                                                  c.RESET))
             self.username = credential.login
             self.passw = credential.passw
             if not self.is_connected:
@@ -219,7 +223,8 @@ class GenericEquipment(object):
                         objects.get_or_create(equipment_id=self.equipment_object, credentials_id=credential)
                     tested.was_checked = True
                     tested.save()
-                    self.l.debug("Created EquipmentSuggestCredentials with was_cheked = True for equipment_id=%s, credentials_id=%s ",
+                    self.l.debug("Created EquipmentSuggestCredentials with was_checked = True for equipment_id=%s,"
+                                 " credentials_id=%s ",
                                  self.equipment_object.id, credential.id)
             except EOFError:
                 self.l.info("Disconnected suddenly")
@@ -231,7 +236,13 @@ class GenericEquipment(object):
             except NoLoginPrompt:
                 self.l.info("Disconnected suddenly. No Login Prompt were detected")
                 self.disconnect()
-        self.l.info("Couldn't find suggested credentials")
+        self.l.warning("%sCouldn't find suggested credentials%s" % (c.CYAN + c.BOLD, c.RESET))
+        # Pushing None values to self object login and password
+        self.username = None
+        self.passw = None
+        self.l.debug("Deleting already checked credentials in hope that next login/password suggest "
+                     "attempts will be successful")
+        EquipmentSuggestCredentials.objects.filter(equipment_id=self.equipment_object.id).delete()
         return False
 
     def expect(self, re_list):
@@ -242,7 +253,7 @@ class GenericEquipment(object):
         """
         str = self.t.expect(re_list, self.io_timeout)
         if str[0] == -1:
-            self.l.debug("can't find expected string. Input was: %s", str[2])
+            self.l.debug("can't find expected string in string: %s", str[2])
             # line below has very ugly output, so I have to comment it =)
             # self.l.debug("search was: %s", re_list)
             self._print_recv(b2a(str[2]))
@@ -261,6 +272,28 @@ class GenericEquipment(object):
         self.l.debug(c.RED + c.BOLD + line + c.RESET)
         self.t.write(a2b(line + "\n"))
         self.l.debug('>>>> sending end')
+
+    def exec_cmd(self, cmd):
+        """
+        Executes command with ENTER key, returns command output
+        :param cmd:
+        :return:
+        """
+        if not self.is_logged:
+            raise NoLoggedIn
+        output = ''  # all output in ascii will be here
+        self.l.debug('>>>> sending')
+        self.l.debug(c.RED + c.BOLD + cmd + c.RESET)
+        self.t.write(a2b(cmd + "\n"))
+        self.l.debug('>>>> sending end')
+        while True:
+            out = self.t.expect(self.pager, self.io_timeout)
+            print(out)
+            output += b2a(out[2])
+            if out[0] == -1:
+                break
+            self.t.write(a2b(' '))  # sending SPACE to get next page
+        return output
 
     def _print_recv(self, input_string):
         """
@@ -299,9 +332,8 @@ class GenericEquipment(object):
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
         self._sleep(2)  # 2 seconds because most equipment have big timeout after unsuccessful login
-        self.l.debug("Expecting login or password prompt in case of authentication is failed")
+        self.l.debug("Expecting login or password prompt or auth failed in case of authentication is failed")
         out = self.expect(LOGIN_PROMPTS + PASSWORD_PROMPTS + AUTHENTICATION_FAILED)
-        print(out)
         self._print_recv(out)
         if out:  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
@@ -315,9 +347,8 @@ class GenericEquipment(object):
         So, we need to login to device
         :return: True. Or Exception if something was wrong
         """
-        if self.passw is False:
+        if self.passw is None:
             raise NoKnownPassword
-
         if self.is_connected:
             self.disconnect()
         self.connect()  # connecting
@@ -328,18 +359,6 @@ class GenericEquipment(object):
         self._print_recv(out)  # debug out
         self.send(self.passw)  # sending known password
         self._sleep(0.5)  # waiting for possible tacacs timeout
-        """self.l.debug("We must be logged in now...")
-        out = self.t.read_eager()  # and reading output
-        self._print_recv(b2a(out))  # then printing it
-        self.send('')  # sending empty command
-        # in normal life, if we send <CR> after login, we will got a prompt
-        self._sleep(3)  # small timeout
-        out = self.t.read_eager()
-        self._print_recv(b2a(out))  # debugging
-        self.l.debug("one more attempt to receive something")
-        self._sleep(3)  # small timeout
-        out = self.t.read_eager()
-        self.prompt = b2a(out)"""
         self.is_logged = True
         # it seems that old code is better than a new one -> _discover_prompt()
         self._discover_prompt()
@@ -351,7 +370,7 @@ class GenericEquipment(object):
         :return:
         """
         if not self.is_logged:
-            self.do_login()
+            raise NoLoggedIn
         self.send('')  # sending empty command
         out = self.t.read_until(b'whatever?', self.io_timeout)  # wainting for io_timeout for command promt
         self._print_recv(b2a(out))  # reading it
@@ -359,3 +378,12 @@ class GenericEquipment(object):
         self.is_logged = True
         self.l.debug("Discovered the prompt: " + c.BOLD + c.WHITE + self.prompt + c.RESET)
         return self.prompt
+
+    def discover_vendor(self):
+        # sh_ver = self.exec_cmd('show ver')
+        sh_ver = self.exec_cmd('show start')
+        # NAG/SNR check
+        if re.search(r'(SNR|NAG)', sh_ver, re.I + re.MULTILINE):
+            self.l.info("SNR device found")
+        if re.search(r'Cisco', sh_ver, re.I + re.MULTILINE):
+            self.l.info("Cisco device found")

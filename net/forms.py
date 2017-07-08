@@ -18,7 +18,7 @@ class SubnetForm(forms.Form):
     subnets.widget.attrs = {
         'placeholder': "Enter the networks to scan with fping in CIDR format\n3 x /24 is OK.\n"
                        "For more network scan, please push checkbox \"send task to Celery\"\n"
-                       "/24 scan took about 30 second, so /16 will be 2+ hours",
+                       "/24 scan took about 30 second, so /16 will be about 1/2 hour",
         'rows': 5,
         'cols': 40,
         'class': 'form-control',

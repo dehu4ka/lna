@@ -46,6 +46,7 @@ class Credentials(models.Model):
     passw = models.CharField(max_length=512, default='')
     enable_password = models.CharField(max_length=512, default='')
     snmp_community = models.CharField(max_length=512, default='')
+    comment = models.CharField(max_length=512, default='')
 
     class Meta:
         ordering = ('id', )

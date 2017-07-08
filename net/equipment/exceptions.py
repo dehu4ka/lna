@@ -11,3 +11,8 @@ class NoPasswordPrompt(Exception):
 class NoKnownPassword(Exception):
     def __init__(self):
         Exception.__init__(self, "Trying to login with unknown password")
+
+
+class NoLoggedIn(Exception):
+    def __init__(self):
+        Exception.__init__(self, "Trying to exec commands without logged in to device")
