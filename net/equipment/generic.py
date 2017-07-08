@@ -286,13 +286,17 @@ class GenericEquipment(object):
         self.l.debug(c.RED + c.BOLD + cmd + c.RESET)
         self.t.write(a2b(cmd + "\n"))
         self.l.debug('>>>> sending end')
+        expect_list = self.pager
+        expect_list.append(a2b(self.prompt))  # If we have in our expect list both shell prompt and more prompt,
+        #  we should not wait too long
         while True:
             out = self.t.expect(self.pager, self.io_timeout)
-            print(out)
             output += b2a(out[2])
             if out[0] == -1:
                 break
-            self.t.write(a2b(' '))  # sending SPACE to get next page
+            x = re.compile(a2b(self.prompt))
+            if out[1].re != x:
+                self.t.write(a2b(' '))  # sending SPACE to get next page
         return output
 
     def _print_recv(self, input_string):
@@ -380,10 +384,12 @@ class GenericEquipment(object):
         return self.prompt
 
     def discover_vendor(self):
-        # sh_ver = self.exec_cmd('show ver')
-        sh_ver = self.exec_cmd('show start')
+        sh_ver = self.exec_cmd('show ver')
+        # print(sh_ver)
         # NAG/SNR check
-        if re.search(r'(SNR|NAG)', sh_ver, re.I + re.MULTILINE):
+        if re.search(r'(SNR|NAG)', sh_ver, re.MULTILINE):
             self.l.info("SNR device found")
-        if re.search(r'Cisco', sh_ver, re.I + re.MULTILINE):
+        if re.search(r'Cisco', sh_ver, re.MULTILINE):
             self.l.info("Cisco device found")
+        if re.search(r'JUNOS', sh_ver, re.MULTILINE):
+            self.l.info("Juniper device found")
