@@ -24,6 +24,8 @@ LOGIN_PROMPTS = [
     re.compile(b'username:', flags=re.I),
     re.compile(b'login: ', flags=re.I),
     re.compile(b'login:', flags=re.I),
+    re.compile(b'user name:', flags=re.I),
+    re.compile(b'user name: ', flags=re.I),
 
 ]
 
@@ -231,10 +233,10 @@ class GenericEquipment(object):
                 # Unfortunately we can't be sure if disconnect were caused by invalid login or by other circumstances
                 self.disconnect()
             except NoPasswordPrompt:
-                self.l.info("Disconnected suddenly. No Password Prompt were detected")
+                self.l.info("Disconnecting. No Password Prompt were detected")
                 self.disconnect()
             except NoLoginPrompt:
-                self.l.info("Disconnected suddenly. No Login Prompt were detected")
+                self.l.info("Disconnecting. No Login Prompt were detected")
                 self.disconnect()
         self.l.warning("%sCouldn't find suggested credentials%s" % (c.CYAN + c.BOLD, c.RESET))
         # Pushing None values to self object login and password
@@ -249,17 +251,17 @@ class GenericEquipment(object):
         """
         Expecting to find some of RE's in input re_list.
         :param re_list:
-        :return: Returns telnet output or False if not found
+        :return: Returns tuple, first el - was any RE found or not, second - output in
         """
         str = self.t.expect(re_list, self.io_timeout)
         if str[0] == -1:
-            self.l.debug("can't find expected string in string: %s", str[2])
+            self.l.debug("can't find expected string in string")
             # line below has very ugly output, so I have to comment it =)
             # self.l.debug("search was: %s", re_list)
             self._print_recv(b2a(str[2]))
-            return False  # not found
+            return False, b2a(str[2])  # not found
         # otherwise string is found, returning it ascii
-        return b2a(str[2])
+        return True, b2a(str[2])
         # return str[2]
 
     def send(self, line):
@@ -321,25 +323,25 @@ class GenericEquipment(object):
         """
         self._sleep(0.5)
         self.l.debug("expecting login prompt:")
-        out = self.expect(LOGIN_PROMPTS)
+        was_found, out = self.expect(LOGIN_PROMPTS)
         self._print_recv(out)
-        if not out:  # we are expecting to see login prompt
+        if not was_found:  # we are expecting to see login prompt
             self.l.warning("Can't find login prompt")
-            # raise NoLoginPrompt
+            raise NoLoginPrompt
         self.send(self.username)  # sending login
         self._sleep(1)
         self.l.debug("Expecting password prompt:")
-        out = self.expect(PASSWORD_PROMPTS)
+        was_found, out = self.expect(PASSWORD_PROMPTS)
         self._print_recv(out)
-        if not out:  # same for password
+        if not was_found:  # same for password
             self.l.warning("Can't find password prompt")
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
         self._sleep(2)  # 2 seconds because most equipment have big timeout after unsuccessful login
         self.l.debug("Expecting login or password prompt or auth failed in case of authentication is failed")
-        out = self.expect(LOGIN_PROMPTS + PASSWORD_PROMPTS + AUTHENTICATION_FAILED)
+        was_found, out = self.expect(LOGIN_PROMPTS + PASSWORD_PROMPTS + AUTHENTICATION_FAILED)
         self._print_recv(out)
-        if out:  # if we are seeing login or password again - our creds are invalid
+        if was_found:  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
             return False
         self.l.debug("Logged in with L: %s and P: %s", self.username, self.passw)
@@ -356,10 +358,10 @@ class GenericEquipment(object):
         if self.is_connected:
             self.disconnect()
         self.connect()  # connecting
-        out = self.expect(LOGIN_PROMPTS)  # we need to wait for login prompt
+        was_found, out = self.expect(LOGIN_PROMPTS)  # we need to wait for login prompt
         self._print_recv(out)  # debug out
         self.send(self.username)  # sending known username
-        out = self.expect(PASSWORD_PROMPTS)  # waiting for password prompt
+        was_found, out = self.expect(PASSWORD_PROMPTS)  # waiting for password prompt
         self._print_recv(out)  # debug out
         self.send(self.passw)  # sending known password
         self._sleep(0.5)  # waiting for possible tacacs timeout
@@ -393,3 +395,6 @@ class GenericEquipment(object):
             self.l.info("Cisco device found")
         if re.search(r'JUNOS', sh_ver, re.MULTILINE):
             self.l.info("Juniper device found")
+        sh_ver = self.exec_cmd('show equipment isam')
+        if re.search(r'isam table', sh_ver, re.MULTILINE):
+            self.l.info("Alcatel device found")
