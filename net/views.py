@@ -14,12 +14,12 @@ class Demo(LoginRequiredMixin, TemplateView):
     template_name = 'net/demo.html'
 
     def get(self, request, *args, **kwargs):
-        eq_device = Equipment.objects.get(ne_ip='10.205.18.172')  # equipment object
+        eq_device = Equipment.objects.get(ne_ip='10.205.18.247')  # equipment object
         eq = GenericEquipment(eq_device)
-        eq.set_io_timeout(5)
-        eq.suggest_login(resuggest=True)
-        # eq.do_login()
-        # eq.discover_vendor()
+        eq.set_io_timeout(1)
+        eq.suggest_login(resuggest=False)
+        eq.do_login()
+        eq.discover_vendor()
         return render(request, self.template_name, *args, **kwargs)
 
 

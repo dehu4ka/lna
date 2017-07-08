@@ -289,7 +289,8 @@ class GenericEquipment(object):
         self.t.write(a2b(cmd + "\n"))
         self.l.debug('>>>> sending end')
         expect_list = self.pager
-        expect_list.append(a2b(self.prompt))  # If we have in our expect list both shell prompt and more prompt,
+        re_with_prompt = re.compile(a2b(self.prompt))
+        expect_list.append(re_with_prompt)  # If we have in our expect list both shell prompt and more prompt,
         #  we should not wait too long
         while True:
             out = self.t.expect(self.pager, self.io_timeout)
@@ -379,6 +380,14 @@ class GenericEquipment(object):
             raise NoLoggedIn
         self.send('')  # sending empty command
         out = self.t.read_until(b'whatever?', self.io_timeout)  # wainting for io_timeout for command promt
+        out = out.replace(b'\x1b[K', b'')
+        """
+        Thx to https://jcastellssala.com/2012/07/20/python-command-line-waiting-feedback-and-some-background-on-why/
+        \r Escape sequence for a Carriage Return (Go to the beginning of the line).
+        \x1b[ Code for CSI (Control Sequence Introducer, nothing to do with the TV-series. check Wikipedia). 
+        It is formed by the hexadecimal escape value 1b (\x1b) followed by [.
+        K is the Escape sequence code to Erase the line.
+        """
         self._print_recv(b2a(out))  # reading it
         self.prompt = b2a(out).splitlines()[-1]  # getting it
         self.is_logged = True
@@ -386,15 +395,49 @@ class GenericEquipment(object):
         return self.prompt
 
     def discover_vendor(self):
+        """
+        Puts some commands to NE for discovering vendor of it. If discovering was successful than writing to DB
+        :return: True if discovering were successful, or False otherwise
+        """
+        found_vendor = False
+        # CISCO, SNR, Juniper guessing
         sh_ver = self.exec_cmd('show ver')
-        # print(sh_ver)
-        # NAG/SNR check
         if re.search(r'(SNR|NAG)', sh_ver, re.MULTILINE):
             self.l.info("SNR device found")
-        if re.search(r'Cisco', sh_ver, re.MULTILINE):
+            found_vendor = 'SNR'
+        elif re.search(r'Cisco', sh_ver, re.MULTILINE):
             self.l.info("Cisco device found")
-        if re.search(r'JUNOS', sh_ver, re.MULTILINE):
+            found_vendor = 'Cisco'
+        elif re.search(r'JUNOS', sh_ver, re.MULTILINE):
             self.l.info("Juniper device found")
-        sh_ver = self.exec_cmd('show equipment isam')
-        if re.search(r'isam table', sh_ver, re.MULTILINE):
-            self.l.info("Alcatel device found")
+            found_vendor = 'Juniper'
+        elif not found_vendor:
+            # Alcatel guessing
+            sh_ver = self.exec_cmd('show equipment isam')
+            if re.search(r'isam table', sh_ver, re.MULTILINE):
+                self.l.info("Alcatel device found")
+                found_vendor = 'Alcatel'
+        if not found_vendor:
+            # Zyxel ZYNOS guessing
+            sh_ver = self.exec_cmd('sys info show')
+            if re.search(r'ZyNOS', sh_ver, re.MULTILINE):
+                self.l.info("Zyxel device found")
+                found_vendor = 'Zyxel'
+        if not found_vendor:
+            # Eltex guessing
+            sh_ver = self.exec_cmd('show system')
+            if re.search(r'System Description', sh_ver, re.MULTILINE):
+                self.l.info("Eltex device found")
+                found_vendor = 'Eltex'
+        if not found_vendor:
+            # Huawei guessing
+            sh_ver = self.exec_cmd('disp ver')
+            if re.search(r'HUAWEI', sh_ver, re.MULTILINE):
+                self.l.info("Huawei device found")
+                found_vendor = 'Huawei'
+        if found_vendor:
+            self.equipment_object.vendor = found_vendor
+            self.l.debug('Writing it to DB')
+            self.equipment_object.save()
+            return True
+        return False
