@@ -6,7 +6,7 @@ from net.models import Scripts, Job, Equipment
 from net.forms import TaskForm, ArchiveTasksForm, SubnetForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
-from net.lib import starter, scan_nets_with_fping
+from net.lib import starter, scan_nets_with_fping, discover_vendor
 
 
 # Create your views here.
@@ -124,11 +124,16 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
             if form.is_valid():
                 subnets = form.cleaned_data['subnets'].split("\r\n")  # lists with subnet
                 cast_to_celery = form.cleaned_data['cast_to_celery']
+                discover_task = form.cleaned_data['discover_task']
                 context['cast_to_celery'] = cast_to_celery
-                if not cast_to_celery:
-                    found, new = scan_nets_with_fping(subnets)
-                    context['found'] = found
-                    context['new'] = new
-                else:
-                    starter(subnets, '999')  # 999 will be send task to celery for subnets scan
+                if discover_task == 'fping':
+                    if not cast_to_celery:
+                        found, new = scan_nets_with_fping(subnets)
+                        context['found'] = found
+                        context['new'] = new
+                    else:
+                        starter(subnets, '999')  # 999 will be send task to celery for subnets scan
+                if discover_task == 'vendor':
+                    discover_vendor(subnets)
+                    pass
         return context

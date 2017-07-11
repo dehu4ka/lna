@@ -71,9 +71,9 @@ class GenericEquipment(object):
         if not isinstance(equipment_object, Equipment):
             raise Exception("Passed to constructor not Equipment Object")
         self.equipment_object = equipment_object
-        self.ip = equipment_object.ne_ip
+        # ne_ip is ipaddress.ip_interface, see https://docs.python.org/3/library/ipaddress.html
+        self.ip = str(equipment_object.ne_ip.ip)
         self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
-
         self.l.debug('Equipment object was created, IP: %s', self.ip)
         self.timeout = 3  # telnet timeout in seconds
         self.t = Telnet()
@@ -439,5 +439,5 @@ class GenericEquipment(object):
             self.equipment_object.vendor = found_vendor
             self.l.debug('Writing it to DB')
             self.equipment_object.save()
-            return True
+            return found_vendor
         return False

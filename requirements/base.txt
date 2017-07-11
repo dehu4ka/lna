@@ -60,3 +60,4 @@ django-celery-beat
 django-celery-results
 netmiko
 gunicorn
+netaddr

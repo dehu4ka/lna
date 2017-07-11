@@ -2,7 +2,7 @@ from django.db import models
 from django.utils import timezone
 from argus.models import ASTU
 from django.contrib.postgres.fields import JSONField
-
+from netfields import InetAddressField, NetManager
 
 # Create your models here.
 
@@ -60,8 +60,14 @@ class Equipment(models.Model):
     hostname = models.CharField(max_length=512, default='', null=True)
     vendor = models.CharField(max_length=512, default='', null=True)
     model = models.CharField(max_length=512, default='', null=True)
-    ne_ip = models.GenericIPAddressField(protocol='IPv4', db_index=True, unique=True)
+    # ne_ip = models.GenericIPAddressField(protocol='IPv4', db_index=True, unique=True)
+    ne_ip = InetAddressField(db_index=True)
     credentials = models.ForeignKey(Credentials, on_delete=models.CASCADE, null=True)
+
+    objects = NetManager()
+
+    def __str__(self):
+        return "Equipment object with IP: " + str(self.ne_ip)
 
 
 class EquipmentSuggestCredentials(models.Model):

@@ -15,6 +15,7 @@ class ArchiveTasksForm(forms.Form):
 
 class SubnetForm(forms.Form):
     subnets = forms.CharField(widget=forms.Textarea, required=True, label='')
+    discover_task_choices = (('fping', 'Discover with FPING'), ('vendor', 'Discover Vendor and models'))
     subnets.widget.attrs = {
         'placeholder': "Enter the networks to scan with fping in CIDR format\n3 x /24 is OK.\n"
                        "For more network scan, please push checkbox \"send task to Celery\"\n"
@@ -25,4 +26,5 @@ class SubnetForm(forms.Form):
 
     }
     cast_to_celery = forms.BooleanField(label='Send discovery task to Celery ', required=False)
-    sh_ip_bgp = forms.BooleanField(label='output from "sh ip bgp" ', required=False)
+    discover_task = forms.ChoiceField(choices=discover_task_choices, required=True, label='Choice task Type')
+    discover_task.widget.attrs = {'class': 'custom-select', }

@@ -55,6 +55,7 @@ THIRD_PARTY_APPS = [
     'django_celery_beat',  # django-celery-beat extension that stores the schedule in the Django database,
     # and presents a convenient admin interface to manage periodic tasks at runtime.
     'django_celery_results',
+    'netfields',
 ]
 
 # Apps specific for this project go here.
