@@ -7,6 +7,7 @@ from net.forms import TaskForm, ArchiveTasksForm, SubnetForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
 from net.lib import starter, scan_nets_with_fping, discover_vendor
+from argus.models import Client, ASTU
 
 
 # Create your views here.
@@ -136,4 +137,40 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
                 if discover_task == 'vendor':
                     discover_vendor(subnets)
                     pass
+        return context
+
+
+class ClientsCount(LoginRequiredMixin, TemplateView):
+    template_name = 'net/clients_count.html'
+
+    def get_context_data(self, **kwargs):
+        result_dict = dict()
+
+        clients = Client.objects.all()
+        for client in clients:
+            hostname = client.hostname
+            hostname_parts = hostname.split('-')
+            try:
+                node_name = hostname_parts[0] + '-' + hostname_parts[1] + '-' + hostname_parts[2]
+                if node_name in result_dict:
+                    result_dict[node_name] += 1
+                else:
+                    result_dict[node_name] = 1
+            except IndexError:
+                # skip
+                # print(hostname)
+                pass
+
+        result_str = ''
+        for node in result_dict:
+            try:
+                astu_objects = ASTU.objects.filter(hostname__contains=node).filter(status='эксплуатация')
+                astu_first_object = astu_objects[0]
+                address = astu_first_object.address
+            except IndexError:
+                address = 'Unknown'
+            # print(node + ';' + str(result_dict[node]) + ';"' + address + '"')
+            result_str += node + ';' + str(result_dict[node]) + ';"' + address + '"' + "\n"
+        context = super(ClientsCount, self).get_context_data(**kwargs)
+        context['result_str'] = result_str
         return context

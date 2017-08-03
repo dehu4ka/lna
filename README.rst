@@ -241,7 +241,7 @@ Gunicorn
     User=hu4
     Group=nginx
     WorkingDirectory=/home/hu4/lna
-    ExecStart=/home/hu4/lna/.venv/bin/gunicorn --workers 3 --bind unix:/home/hu4/lna/lna.sock config.wsgi:application
+    ExecStart=/home/hu4/lna/.venv/bin/gunicorn --workers 3 --bind unix:/home/hu4/lna/lna.sock config.wsgi:application --access-logfile /var/log/gunicorn/access.log --error-logfile /var/log/gunicorn/error.log --timeout 300
 
     [Install]
     WantedBy=multi-user.target

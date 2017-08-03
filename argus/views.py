@@ -145,7 +145,7 @@ class SearchView(LoginRequiredMixin, AjaxListView, FormView):
         if input_string:
             if re.findall(ip_pattern, input_string):
                 search_objects = search_objects.filter(ne_ip=input_string)
-
+                count = search_objects.count()
             else:
                 search_objects = search_objects.filter(
                     Q(inet_login__contains=input_string) |
