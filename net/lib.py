@@ -55,21 +55,32 @@ def scan_nets_with_fping(subnets):
 
 
 def discover_vendor(subnets):
+    """
+    Does network element discovery and finds logins/passwords from credentials database
+
+    :param subnets: list with subnets to discover
+
+    :return: login_suggest_success_count, vendor_found_count
+
+    """
     login_suggest_success_count = 0
     vendor_found_count = 0
     for subnet in subnets:
         # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
         if subnet.find("/") == -1:
             # one host
-            hosts = Equipment.objects.filter(ne_ip=subnet).filter(credentials_id__isnull=False)
+            hosts = Equipment.objects.filter(ne_ip=subnet)
         else:
             # subnet
-            hosts = Equipment.objects.filter(ne_ip__net_contained=subnet).filter(credentials_id__isnull=False)
+            hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
         for host in hosts:
             eq = GenericEquipment(host)
             # need to adjust it? or 1 sec is enough?
             eq.set_io_timeout(1)
             if eq.suggest_login(resuggest=False):
                 login_suggest_success_count += 1
-            eq.do_login()
-            eq.discover_vendor()
+                # Trying to login only if login guessing was successful
+                eq.do_login()
+                if eq.discover_vendor():
+                    vendor_found_count += 1
+    return login_suggest_success_count, vendor_found_count

@@ -3,7 +3,7 @@ from telnetlib import Telnet
 import logging
 import re
 import socket
-from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt, NoKnownPassword, NoLoggedIn
+from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt, NoKnownPassword, NotLoggedIn
 from time import sleep
 from net.libs.colors import Colors
 
@@ -133,6 +133,10 @@ class GenericEquipment(object):
         except socket.timeout:
             self.l.warning("Connection to %s - timeout!", self.ip)
             return False
+        except OSError:
+            self.l.info("OS Error, probably host have some firewall turned on, firewall is sending ICMP reject"
+                        "and OS Error exception raised.")
+            return False
         else:
             self.l.debug('Connection to %s was successful', self.ip)
             self.is_connected = True
@@ -174,12 +178,11 @@ class GenericEquipment(object):
             return False
 
     def suggest_login(self, resuggest=False):
-        """
-        Подбирает логин и пароль из списка в БД
+        """Tries to guess or suggest in other words device's login and password. Uses credentials stored in credentials database.
+
         :param resuggest: If we already have credentials in the DB and still want to try new suggestions
-        :return:
-        Dict with IP, Login, Pass if suggestion was successful
-        False if we can't suggest login/pass
+
+        :return: Dict with IP, Login, Pass if suggestion was successful or False if we can't suggest login/pass
         """
         if resuggest is False and self.equipment_object.credentials:
             self.l.info('Credentials are already in the DB')
@@ -250,7 +253,9 @@ class GenericEquipment(object):
     def expect(self, re_list):
         """
         Expecting to find some of RE's in input re_list.
-        :param re_list:
+
+        :param re_list: List of compiled Regular Expressions
+
         :return: Returns tuple, first el - was any RE found or not, second - output in
         """
         str = self.t.expect(re_list, self.io_timeout)
@@ -282,7 +287,7 @@ class GenericEquipment(object):
         :return:
         """
         if not self.is_logged:
-            raise NoLoggedIn
+            raise NotLoggedIn
         output = ''  # all output in ascii will be here
         self.l.debug('>>>> sending')
         self.l.debug(c.RED + c.BOLD + cmd + c.RESET)
@@ -345,13 +350,18 @@ class GenericEquipment(object):
         if was_found:  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
             return False
+        if out == '':
+            self.l.warning("There was not output after login/password was sent. Probably bad password or dead AAA "
+                           "servers, this leads to huge timeout. Try login to device manually.")
+            self.disconnect()
+            return False
         self.l.debug("Logged in with L: %s and P: %s", self.username, self.passw)
         return True
 
     def do_login(self):
         """
-        Assuming that we are already know valid login and password from login_suggest.
-        So, we need to login to device
+        Assuming that we are already know valid login and password from login_suggest. So, we need to login to device
+
         :return: True. Or Exception if something was wrong
         """
         if self.passw is None:
@@ -373,11 +383,12 @@ class GenericEquipment(object):
 
     def _discover_prompt(self):
         """
-        Discovers commant prompt. Or configure prompt. Send Enter <CR> and waits wor result
+        Discovers command prompt. Or configure prompt. Send Enter <CR> and waits wor result
+
         :return:
         """
         if not self.is_logged:
-            raise NoLoggedIn
+            raise NotLoggedIn
         self.send('')  # sending empty command
         out = self.t.read_until(b'whatever?', self.io_timeout)  # wainting for io_timeout for command promt
         out = out.replace(b'\x1b[K', b'')
@@ -389,7 +400,8 @@ class GenericEquipment(object):
         K is the Escape sequence code to Erase the line.
         """
         self._print_recv(b2a(out))  # reading it
-        self.prompt = b2a(out).splitlines()[-1]  # getting it
+        if out is not b"":
+            self.prompt = b2a(out).splitlines()[-1]  # getting it
         self.is_logged = True
         self.l.debug("Discovered the prompt: " + c.BOLD + c.WHITE + self.prompt + c.RESET)
         return self.prompt
@@ -397,8 +409,13 @@ class GenericEquipment(object):
     def discover_vendor(self):
         """
         Puts some commands to NE for discovering vendor of it. If discovering was successful than writing to DB
+
+        NB: must be logged in
+
         :return: True if discovering were successful, or False otherwise
         """
+        if not self.is_logged:
+            raise NotLoggedIn  # Must be logged in
         found_vendor = False
         try:
             # CISCO, SNR, Juniper guessing
