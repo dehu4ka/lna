@@ -58,10 +58,17 @@ def discover_vendor(subnets):
     login_suggest_success_count = 0
     vendor_found_count = 0
     for subnet in subnets:
-        hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
+        # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
+        if subnet.find("/") == -1:
+            # one host
+            hosts = Equipment.objects.filter(ne_ip=subnet).filter(credentials_id__isnull=False)
+        else:
+            # subnet
+            hosts = Equipment.objects.filter(ne_ip__net_contained=subnet).filter(credentials_id__isnull=False)
         for host in hosts:
             eq = GenericEquipment(host)
-            eq.set_io_timeout(5)
+            # need to adjust it? or 1 sec is enough?
+            eq.set_io_timeout(1)
             if eq.suggest_login(resuggest=False):
                 login_suggest_success_count += 1
             eq.do_login()

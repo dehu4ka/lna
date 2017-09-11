@@ -400,41 +400,44 @@ class GenericEquipment(object):
         :return: True if discovering were successful, or False otherwise
         """
         found_vendor = False
-        # CISCO, SNR, Juniper guessing
-        sh_ver = self.exec_cmd('show ver')
-        if re.search(r'(SNR|NAG)', sh_ver, re.MULTILINE):
-            self.l.info("SNR device found")
-            found_vendor = 'SNR'
-        elif re.search(r'Cisco', sh_ver, re.MULTILINE):
-            self.l.info("Cisco device found")
-            found_vendor = 'Cisco'
-        elif re.search(r'JUNOS', sh_ver, re.MULTILINE):
-            self.l.info("Juniper device found")
-            found_vendor = 'Juniper'
-        elif not found_vendor:
-            # Alcatel guessing
-            sh_ver = self.exec_cmd('show equipment isam')
-            if re.search(r'isam table', sh_ver, re.MULTILINE):
-                self.l.info("Alcatel device found")
-                found_vendor = 'Alcatel'
-        if not found_vendor:
-            # Zyxel ZYNOS guessing
-            sh_ver = self.exec_cmd('sys info show')
-            if re.search(r'ZyNOS', sh_ver, re.MULTILINE):
-                self.l.info("Zyxel device found")
-                found_vendor = 'Zyxel'
-        if not found_vendor:
-            # Eltex guessing
-            sh_ver = self.exec_cmd('show system')
-            if re.search(r'System Description', sh_ver, re.MULTILINE):
-                self.l.info("Eltex device found")
-                found_vendor = 'Eltex'
-        if not found_vendor:
-            # Huawei guessing
-            sh_ver = self.exec_cmd('disp ver')
-            if re.search(r'HUAWEI', sh_ver, re.MULTILINE):
-                self.l.info("Huawei device found")
-                found_vendor = 'Huawei'
+        try:
+            # CISCO, SNR, Juniper guessing
+            sh_ver = self.exec_cmd('show ver')
+            if re.search(r'(SNR|NAG)', sh_ver, re.MULTILINE):
+                self.l.info("SNR device found at IP: %s" % self.ip)
+                found_vendor = 'SNR'
+            elif re.search(r'Cisco', sh_ver, re.MULTILINE):
+                self.l.info("Cisco device found at IP: %s" % self.ip)
+                found_vendor = 'Cisco'
+            elif re.search(r'JUNOS', sh_ver, re.MULTILINE):
+                self.l.info("Juniper device found at IP: %s" % self.ip)
+                found_vendor = 'Juniper'
+            elif not found_vendor:
+                # Alcatel guessing
+                sh_ver = self.exec_cmd('show equipment isam')
+                if re.search(r'isam table', sh_ver, re.MULTILINE):
+                    self.l.info("Alcatel device found at IP: %s" % self.ip)
+                    found_vendor = 'Alcatel'
+            if not found_vendor:
+                # Zyxel ZYNOS guessing
+                sh_ver = self.exec_cmd('sys info show')
+                if re.search(r'ZyNOS', sh_ver, re.MULTILINE):
+                    self.l.info("Zyxel device found at IP: %s" % self.ip)
+                    found_vendor = 'Zyxel'
+            if not found_vendor:
+                # Eltex guessing
+                sh_ver = self.exec_cmd('show system')
+                if re.search(r'System Description', sh_ver, re.MULTILINE):
+                    self.l.info("Eltex device found at IP: %s" % self.ip)
+                    found_vendor = 'Eltex'
+            if not found_vendor:
+                # Huawei guessing
+                sh_ver = self.exec_cmd('disp ver')
+                if re.search(r'HUAWEI', sh_ver, re.MULTILINE):
+                    self.l.info("Huawei device found at IP: %s" % self.ip)
+                    found_vendor = 'Huawei'
+        except EOFError:
+            self.l.warning("Disconnected!")
         if found_vendor:
             self.equipment_object.vendor = found_vendor
             self.l.debug('Writing it to DB')
