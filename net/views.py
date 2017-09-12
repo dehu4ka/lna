@@ -6,7 +6,7 @@ from net.models import Scripts, Job, Equipment
 from net.forms import TaskForm, ArchiveTasksForm, SubnetForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
-from net.lib import starter, scan_nets_with_fping, discover_vendor
+from net.lib import celery_job_starter, scan_nets_with_fping, discover_vendor
 from argus.models import Client, ASTU
 
 
@@ -44,12 +44,14 @@ class DoTask(LoginRequiredMixin, TemplateView):
         """
         Нужно запустить стартер, который получит на вход список ID назначений, имя скрипта для выполнения, и возможно,
         какие-то дополнительные аргументы.
+
         :param request:
+
         :return:
         """
         destinations_ids = request.POST.getlist('destinations')
         script_id = request.POST['script_select']
-        starter(destinations_ids, script_id)
+        celery_job_starter(destinations_ids, script_id)
         args = dict()
         return render(request, self.template_name, args)
 
@@ -124,8 +126,8 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
             form = SubnetForm(self.request.POST)
             if form.is_valid():
                 subnets = form.cleaned_data['subnets'].split("\r\n")  # lists with subnet
-                cast_to_celery = form.cleaned_data['cast_to_celery']
-                discover_task = form.cleaned_data['discover_task']
+                cast_to_celery = form.cleaned_data['cast_to_celery']  # "Send discovery task to Celery" checkbox
+                discover_task = form.cleaned_data['discover_task']  # Task type
                 context['cast_to_celery'] = cast_to_celery
                 if discover_task == 'fping':
                     if not cast_to_celery:
@@ -133,9 +135,12 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
                         context['found'] = found
                         context['new'] = new
                     else:
-                        starter(subnets, '999')  # 999 will be send task to celery for subnets scan
+                        celery_job_starter(subnets, '999')  # 999 will be send task to celery for subnets scan
                 if discover_task == 'vendor':
-                    discover_vendor(subnets)
+                    if not cast_to_celery:
+                        discover_vendor(subnets)
+                    else:
+                        celery_job_starter(subnets, '1000')
                     pass
         return context
 

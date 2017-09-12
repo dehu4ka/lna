@@ -3,7 +3,8 @@ from telnetlib import Telnet
 import logging
 import re
 import socket
-from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt, NoKnownPassword, NotLoggedIn
+from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt, NoKnownPassword, NotLoggedIn, BadCommandPrompt, \
+    NotConnected
 from time import sleep
 from net.libs.colors import Colors
 
@@ -147,36 +148,6 @@ class GenericEquipment(object):
         self.is_logged = False
         self.t.close()
 
-    def login(self, login_timeout=0.4):
-        #  Задумка в том что тупо шлём пару логин / пароль
-        #  Величина login_timeout зависит имхо от задержки такакса
-        try:
-            self.t.write(a2b(self.username + "\n"))  # login
-            #  Ждём того что никогда не будет с таймаутом 0.2 мс
-            self.t.read_until(b'whatever?', login_timeout)
-            self.t.write(a2b(self.passw + "\n"))  # pass
-            output = self.t.read_until(b'whatever?', login_timeout)
-            # print(output)
-            self.t.write(a2b("\n"))  # Enter
-            output = self.t.read_until(b'whatever?', login_timeout)
-            # print(output)
-            self.t.write(a2b("\n"))  # Enter
-            output = self.t.read_until(b'whatever?', login_timeout)
-            # print(output)
-            self.prompt = b2a(output).splitlines()[-1]
-            self.l.debug('Discovered prompt is: %s', self.prompt)
-            self.is_logged = True
-            return True
-        except IndexError:
-            self.l.error('Can not login to NE, login incorrect or auth timeout')
-            return False
-        except ConnectionResetError:
-            self.l.error('ConnectionResetError!')
-        except KeyboardInterrupt:
-            self.t.close()
-            self.l.error("Keyboard interrupt exception")
-            return False
-
     def suggest_login(self, resuggest=False):
         """Tries to guess or suggest in other words device's login and password. Uses credentials stored in credentials database.
 
@@ -235,6 +206,10 @@ class GenericEquipment(object):
                 self.l.info("Disconnected suddenly")
                 # Unfortunately we can't be sure if disconnect were caused by invalid login or by other circumstances
                 self.disconnect()
+            except ConnectionResetError:
+                self.l.info("Connection reset error.")
+                self.disconnect()
+                return False  # Other connection attempts will be unsuccessful, Alcatel anti-bruteforce.
             except NoPasswordPrompt:
                 self.l.info("Disconnecting. No Password Prompt were detected")
                 self.disconnect()
@@ -242,6 +217,7 @@ class GenericEquipment(object):
                 self.l.info("Disconnecting. No Login Prompt were detected")
                 self.disconnect()
         self.l.warning("%sCouldn't find suggested credentials%s" % (c.CYAN + c.BOLD, c.RESET))
+        self.disconnect()  # Disconnecting
         # Pushing None values to self object login and password
         self.username = None
         self.passw = None
@@ -263,9 +239,10 @@ class GenericEquipment(object):
             self.l.debug("can't find expected string in string")
             # line below has very ugly output, so I have to comment it =)
             # self.l.debug("search was: %s", re_list)
-            self._print_recv(b2a(str[2]))
             return False, b2a(str[2])  # not found
+        self._print_recv(b2a(str[2]))
         # otherwise string is found, returning it ascii
+        self.l.debug("Match object is %s" % str[1])  # prints match object for debugging purposes
         return True, b2a(str[2])
         # return str[2]
 
@@ -309,9 +286,11 @@ class GenericEquipment(object):
 
     def _print_recv(self, input_string):
         """
-        Prints received output to console
-        :param input_string: string to color in debug output
-        :return:
+        Prints received output to console with colors
+
+        :param input_string: The string will be colored in debug output
+
+        :return: None
         """
         # We are going to print that, so...
         if input_string is True:
@@ -325,12 +304,14 @@ class GenericEquipment(object):
     def try_to_login(self):
         """
         Trying to login. First get some login prompt, pushing login, then get some password prompt.
+        Use this def when you are unsure in loging and password
+
         :return: False if login attempt was unsuccessful, otherwise - True
         """
         self._sleep(0.5)
-        self.l.debug("expecting login prompt:")
+        self.l.debug("GenericEquipment.try_to_login method. \nExpecting login prompt:")
         was_found, out = self.expect(LOGIN_PROMPTS)
-        self._print_recv(out)
+        # self._print_recv(out)
         if not was_found:  # we are expecting to see login prompt
             self.l.warning("Can't find login prompt")
             raise NoLoginPrompt
@@ -338,18 +319,21 @@ class GenericEquipment(object):
         self._sleep(1)
         self.l.debug("Expecting password prompt:")
         was_found, out = self.expect(PASSWORD_PROMPTS)
-        self._print_recv(out)
+        # self._print_recv(out)
         if not was_found:  # same for password
             self.l.warning("Can't find password prompt")
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
-        self._sleep(2)  # 2 seconds because most equipment have big timeout after unsuccessful login
+        self._sleep(5)  # 2 seconds because most equipment have big timeout after unsuccessful login
         self.l.debug("Expecting login or password prompt or auth failed in case of authentication is failed")
         was_found, out = self.expect(LOGIN_PROMPTS + PASSWORD_PROMPTS + AUTHENTICATION_FAILED)
-        self._print_recv(out)
+        # self._print_recv(out)
         if was_found:  # if we are seeing login or password again - our creds are invalid
             self.l.warning('login "%s" and password "%s" for %s are invalid.', self.username, self.passw, self.ip)
             return False
+        else:
+            self.l.debug("Cant find login or password prompt in output. Generally it is a good sign.")
+            self.l.debug("Output in binary form was: %s" % a2b(out))
         if out == '':
             self.l.warning("There was not output after login/password was sent. Probably bad password or dead AAA "
                            "servers, this leads to huge timeout. Try login to device manually.")
@@ -360,7 +344,8 @@ class GenericEquipment(object):
 
     def do_login(self):
         """
-        Assuming that we are already know valid login and password from login_suggest. So, we need to login to device
+        Assuming that we are already know valid login and password from login_suggest. So, we need to login to device.
+        Use this def when you are pretty sure in login and password.
 
         :return: True. Or Exception if something was wrong
         """
@@ -376,9 +361,11 @@ class GenericEquipment(object):
         self._print_recv(out)  # debug out
         self.send(self.passw)  # sending known password
         self._sleep(0.5)  # waiting for possible tacacs timeout
-        self.is_logged = True
         # it seems that old code is better than a new one -> _discover_prompt()
-        self._discover_prompt()
+        try:
+            self._discover_prompt()
+        except BadCommandPrompt:
+            return False
         return True
 
     def _discover_prompt(self):
@@ -387,8 +374,8 @@ class GenericEquipment(object):
 
         :return:
         """
-        if not self.is_logged:
-            raise NotLoggedIn
+        if not self.is_connected:
+            raise NotConnected
         self.send('')  # sending empty command
         out = self.t.read_until(b'whatever?', self.io_timeout)  # wainting for io_timeout for command promt
         out = out.replace(b'\x1b[K', b'')
@@ -402,8 +389,16 @@ class GenericEquipment(object):
         self._print_recv(b2a(out))  # reading it
         if out is not b"":
             self.prompt = b2a(out).splitlines()[-1]  # getting it
-        self.is_logged = True
+        else:
+            self.l.error("Command prompt cant be empty")
+            raise BadCommandPrompt
+        if re.search(r'(\*)+', self.prompt, re.MULTILINE):
+            # We have found * (asterisk character) in command prompt. Usually this is masked password.
+            # So we cant handle it.
+            self.l.error("We have found * (asterisk character) in command prompt. Usually this is masked password.")
+            raise BadCommandPrompt
         self.l.debug("Discovered the prompt: " + c.BOLD + c.WHITE + self.prompt + c.RESET)
+        self.is_logged = True
         return self.prompt
 
     def discover_vendor(self):
@@ -412,49 +407,52 @@ class GenericEquipment(object):
 
         NB: must be logged in
 
-        :return: True if discovering were successful, or False otherwise
+        :return: Vendor_Name (Cisco, Juniper, etc) if discovering were successful, or False otherwise
         """
+        self.l.debug("Trying to discover vendor for: %s." % self.ip)
         if not self.is_logged:
-            raise NotLoggedIn  # Must be logged in
+            self.l.error("Must be logged in before vendor discovery")
+            return False # Must be logged in
         found_vendor = False
         try:
             # CISCO, SNR, Juniper guessing
-            sh_ver = self.exec_cmd('show ver')
-            if re.search(r'(SNR|NAG)', sh_ver, re.MULTILINE):
+            show_version_command_output = self.exec_cmd('show ver')
+            if re.search(r'(SNR|NAG)', show_version_command_output, re.MULTILINE):
                 self.l.info("SNR device found at IP: %s" % self.ip)
                 found_vendor = 'SNR'
-            elif re.search(r'Cisco', sh_ver, re.MULTILINE):
+            elif re.search(r'Cisco', show_version_command_output, re.MULTILINE):
                 self.l.info("Cisco device found at IP: %s" % self.ip)
                 found_vendor = 'Cisco'
-            elif re.search(r'JUNOS', sh_ver, re.MULTILINE):
+            elif re.search(r'JUNOS', show_version_command_output, re.MULTILINE):
                 self.l.info("Juniper device found at IP: %s" % self.ip)
                 found_vendor = 'Juniper'
             elif not found_vendor:
                 # Alcatel guessing
-                sh_ver = self.exec_cmd('show equipment isam')
-                if re.search(r'isam table', sh_ver, re.MULTILINE):
+                show_version_command_output = self.exec_cmd('show equipment isam')
+                if re.search(r'isam table', show_version_command_output, re.MULTILINE):
                     self.l.info("Alcatel device found at IP: %s" % self.ip)
                     found_vendor = 'Alcatel'
             if not found_vendor:
                 # Zyxel ZYNOS guessing
-                sh_ver = self.exec_cmd('sys info show')
-                if re.search(r'ZyNOS', sh_ver, re.MULTILINE):
+                show_version_command_output = self.exec_cmd('sys info show')
+                if re.search(r'ZyNOS', show_version_command_output, re.MULTILINE):
                     self.l.info("Zyxel device found at IP: %s" % self.ip)
                     found_vendor = 'Zyxel'
             if not found_vendor:
                 # Eltex guessing
-                sh_ver = self.exec_cmd('show system')
-                if re.search(r'System Description', sh_ver, re.MULTILINE):
+                show_version_command_output = self.exec_cmd('show system')
+                if re.search(r'System Description', show_version_command_output, re.MULTILINE):
                     self.l.info("Eltex device found at IP: %s" % self.ip)
                     found_vendor = 'Eltex'
             if not found_vendor:
                 # Huawei guessing
-                sh_ver = self.exec_cmd('disp ver')
-                if re.search(r'HUAWEI', sh_ver, re.MULTILINE):
+                show_version_command_output = self.exec_cmd('disp ver')
+                if re.search(r'HUAWEI', show_version_command_output, re.MULTILINE):
                     self.l.info("Huawei device found at IP: %s" % self.ip)
                     found_vendor = 'Huawei'
         except EOFError:
             self.l.warning("Disconnected!")
+            return False
         if found_vendor:
             self.equipment_object.vendor = found_vendor
             self.l.debug('Writing it to DB')

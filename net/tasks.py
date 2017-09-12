@@ -188,9 +188,12 @@ def long_job_task(self, *args, **kwargs):
 def celery_scan_nets_with_fping(self, subnets=('',)):
     """
     Task for scan subnets with fping
-    :param self:
+
+    :param self: Celery task reference
+
     :param subnets: list (or tuple, or iterable) with subnets, eg ['10.205.0.0/24', '10.205.1.0/24', ...]
-    :return:
+
+    :return: None
     """
     log.warning("celery task in celery_scan_nets_with_fping")
     update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': len(subnets)},
@@ -210,3 +213,72 @@ def celery_scan_nets_with_fping(self, subnets=('',)):
                           message='Scan of %s result: %s alive, %s new hosts' % (subnet, current_found, current_new))
     # After loop end:
     update_job_status(self.request.id, state=states.SUCCESS, result=result)
+
+
+@app.task(bind=True)
+def celery_discover_vendor(self, subnets):
+    """
+    Does network element discovery and finds logins/passwords from credentials database. Works in Celery
+
+    :param subnets: list with subnets to discover
+
+    :param self: Celery task reference
+
+    :return: None
+
+    """
+    login_suggest_success_count = 0
+    vendor_found_count = 0
+    log.warning("Celery task in celery_discover_vendor")
+    log.info("Subnets are: %s" % subnets)
+    result = ""  # Task result
+
+    # First, we need to count NE total
+    total, host_counter = 0, 0  # total host to discover, completed host counter
+    for subnet in subnets:
+        # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
+        if subnet.find("/") == -1:
+            # one host
+            hosts = Equipment.objects.filter(ne_ip=subnet)
+            total += 1  # assuming that IP address is unique field in DB
+        else:
+            # subnet
+            hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
+            total += hosts.count()
+
+    result += "Discover vendor task has started. Total %s devices\n" % total
+    log.warning("Total host to scan: %s" % total)
+    update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': total},
+                      message=result)
+
+    for subnet in subnets:
+        # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
+        if subnet.find("/") == -1:
+            # one host
+            hosts = Equipment.objects.filter(ne_ip=subnet)
+        else:
+            # subnet
+            hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
+        for host in hosts:
+            host_counter += 1
+            eq = GenericEquipment(host)
+            message_from_celery = "Host: %s." % eq.ip
+            # need to adjust it? or 1 sec is enough?
+            eq.set_io_timeout(1)
+            login_suggest_status = eq.suggest_login(resuggest=False)
+            if login_suggest_status:
+                login_suggest_success_count += 1
+                message_from_celery += " Login suggestion was successful."
+                # Trying to login only if login guessing was successful
+                eq.do_login()
+                vendor = eq.discover_vendor()
+                if vendor:
+                    vendor_found_count += 1
+                    message_from_celery += " Vendor was found: %s" % vendor
+                eq.disconnect()
+
+            update_job_status(self.request.id, state=states.STARTED,
+                              meta={'current': host_counter, 'total': total}, message=message_from_celery)
+            result += message_from_celery + "\n"
+
+    update_job_status(self.request.id, state=states.SUCCESS, result=result + 'Done.')

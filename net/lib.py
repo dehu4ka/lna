@@ -3,14 +3,21 @@ from django.utils import timezone
 from django.db import transaction
 from channels import Group
 from net.equipment.generic import GenericEquipment
-from net.tasks import ping_task, login_suggest_task, long_job_task, celery_scan_nets_with_fping
+from net.tasks import ping_task, login_suggest_task, long_job_task, celery_scan_nets_with_fping, celery_discover_vendor
 from net.models import Job, JobResult, Scripts, Equipment
 from argus.models import ASTU
 import subprocess
 
 
 @transaction.non_atomic_requests
-def starter(destinations_ids, script_id):
+def celery_job_starter(destinations_ids, script_id):
+    """
+    Starts celery job
+
+    :param destinations_ids:
+    :param script_id:
+    :return:
+    """
     if destinations_ids == list():
         return False
     job = Job()  # new Job model object
@@ -26,6 +33,9 @@ def starter(destinations_ids, script_id):
         task = login_suggest_task.delay(destinations_ids)
     elif script_id == '999':
         task = celery_scan_nets_with_fping.delay(subnets=destinations_ids)
+        destinations_ids = list()  # Empty list. We don't need to pick ASTU id's for discovery task
+    elif script_id == '1000':
+        task = celery_discover_vendor.delay(subnets=destinations_ids)
         destinations_ids = list()  # Empty list. We don't need to pick ASTU id's for discovery task
     else:
         return False
@@ -83,4 +93,5 @@ def discover_vendor(subnets):
                 eq.do_login()
                 if eq.discover_vendor():
                     vendor_found_count += 1
+                eq.disconnect()
     return login_suggest_success_count, vendor_found_count
