@@ -12,7 +12,10 @@ from lna.taskapp.celery_app import app
 from net.equipment.generic import b2a, GenericEquipment
 from argus.models import ASTU
 from net.models import Job, JobResult, Equipment
-from time import sleep
+import concurrent.futures
+import multiprocessing
+
+MAX_WORKERS = multiprocessing.cpu_count()*10
 
 log = logging.getLogger(__name__)
 
@@ -215,6 +218,30 @@ def celery_scan_nets_with_fping(self, subnets=('',)):
     update_job_status(self.request.id, state=states.SUCCESS, result=result)
 
 
+def discover_one_host(host):
+    """
+    Does network element discovery for one hosts. Returns message with discovery result.
+
+    :param host: Equipment object
+
+    :return: string, message with discovery result
+    """
+    eq = GenericEquipment(host)
+    message_from_celery = "Host: %s." % eq.ip
+    # need to adjust it? or 1 sec is enough?
+    eq.set_io_timeout(1)
+    login_suggest_status = eq.suggest_login(resuggest=False)
+    if login_suggest_status:
+        message_from_celery += " Login suggestion was successful."
+        # Trying to login only if login guessing was successful
+        eq.do_login()
+        vendor = eq.discover_vendor()
+        if vendor:
+            message_from_celery += " Vendor was found: %s" % vendor
+        eq.disconnect()
+    return message_from_celery
+
+
 @app.task(bind=True)
 def celery_discover_vendor(self, subnets):
     """
@@ -246,10 +273,10 @@ def celery_discover_vendor(self, subnets):
             hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
             total += hosts.count()
 
-    result += "Discover vendor task has started. Total %s devices\n" % total
+    result += "Discover vendor task has started. Total %s devices<br />\n" % total
     log.warning("Total host to scan: %s" % total)
     update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': total},
-                      message=result)
+                      message=result, result=result)
 
     for subnet in subnets:
         # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
@@ -259,26 +286,22 @@ def celery_discover_vendor(self, subnets):
         else:
             # subnet
             hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
-        for host in hosts:
-            host_counter += 1
-            eq = GenericEquipment(host)
-            message_from_celery = "Host: %s." % eq.ip
-            # need to adjust it? or 1 sec is enough?
-            eq.set_io_timeout(1)
-            login_suggest_status = eq.suggest_login(resuggest=False)
-            if login_suggest_status:
-                login_suggest_success_count += 1
-                message_from_celery += " Login suggestion was successful."
-                # Trying to login only if login guessing was successful
-                eq.do_login()
-                vendor = eq.discover_vendor()
-                if vendor:
-                    vendor_found_count += 1
-                    message_from_celery += " Vendor was found: %s" % vendor
-                eq.disconnect()
 
-            update_job_status(self.request.id, state=states.STARTED,
-                              meta={'current': host_counter, 'total': total}, message=message_from_celery)
-            result += message_from_celery + "\n"
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # start host discovery
+            future_to_scan = {executor.submit(discover_one_host, host): host for host in hosts}
+            for future in concurrent.futures.as_completed(future_to_scan):
+                future_result = future_to_scan[future]
+                try:
+                    message = future.result()
+                    result += message + "<br />\n"
+                    host_counter += 1
+                    update_job_status(self.request.id, state=states.STARTED,
+                                      meta={'current': host_counter, 'total': total}, message=message,
+                                      result=result)
+                except Exception as exc:
+                    log.warning('%r generated an exception: %s' % (future_result, exc))
+                else:
+                    log.info(message)
 
-    update_job_status(self.request.id, state=states.SUCCESS, result=result + 'Done.')
+    update_job_status(self.request.id, state=states.SUCCESS, result=result + '<br />Done.')

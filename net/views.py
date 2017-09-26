@@ -179,3 +179,7 @@ class ClientsCount(LoginRequiredMixin, TemplateView):
         context = super(ClientsCount, self).get_context_data(**kwargs)
         context['result_str'] = result_str
         return context
+
+
+class NEList(LoginRequiredMixin, TemplateView):
+    template_name = 'net/ne_list.html'
