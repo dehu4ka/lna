@@ -300,7 +300,13 @@ def celery_discover_vendor(self, subnets):
                                       meta={'current': host_counter, 'total': total}, message=message,
                                       result=result)
                 except Exception as exc:
-                    log.warning('%r generated an exception: %s' % (future_result, exc))
+                    host_counter += 1
+                    message = '%r generated an exception: %s' % (future_result, exc)
+                    result += message + "<br />\n"
+                    log.warning(message)
+                    update_job_status(self.request.id, state=states.STARTED,
+                                      meta={'current': host_counter, 'total': total}, message=message,
+                                      result=result)
                 else:
                     log.info(message)
 

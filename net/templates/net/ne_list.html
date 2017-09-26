@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load staticfiles i18n %}
 {% load argus.tags %}
 
 {% block title %}Discovered NE List{% endblock %}
@@ -6,13 +7,40 @@
 {% block content %}
     <h1>Discovered NE List</h1>
 
-    <form method="post" class="form-inline">
-            {% csrf_token %}
-            <div class="form-group mx-sm-3 form-inline">
-                {{ form }}
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-row align-items-center">
+            <div class="col-auto">
+                {{ form.ip_or_subnet }}
             </div>
-            <button type="submit" class="btn btn-primary">Искать</button>
-        </form>
+            <div class="col-auto">
+                <div class="form-check mb-2 mb-sm-0">
+                    {{ form.is_login_discovered.label_tag}}
+                    {{ form.is_login_discovered }}
+                </div>
+            </div>
+            <div class="col-auto">
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+        </div>
+    </form>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     <p>Найдено: {{ row_count }}</p>
     {% if astu_list %}
@@ -57,3 +85,13 @@
 
 {% endblock %}
 
+{% block javascript %}
+    <script src="{% static 'js/popper.js' %}"></script>
+    {{ block.super }}
+    <script>
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip()
+    })
+    </script>
+
+{% endblock %}

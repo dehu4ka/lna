@@ -28,3 +28,26 @@ class SubnetForm(forms.Form):
     cast_to_celery = forms.BooleanField(label='Send discovery task to Celery ', required=False)
     discover_task = forms.ChoiceField(choices=discover_task_choices, required=True, label='Choice task Type')
     discover_task.widget.attrs = {'class': 'custom-select', }
+
+
+class NEListForm(forms.Form):
+    ip_or_subnet = forms.CharField(widget=forms.TextInput, label='', required=False)
+    ip_or_subnet.widget.attrs = {
+        'placeholder': 'search IP or Subnet',
+        'class': 'form-control mb-2 mb-sm-0',
+        'size': 14,
+    }
+
+    is_login_discovered = forms.BooleanField(required=False, label=' Login? ')
+    is_login_discovered.widget.attrs = {
+        'data-toggle': 'tooltip',
+        'data-placement': 'top',
+        'title': 'Was the right login discovered?'
+    }
+
+    is_vendor_discovered = forms.BooleanField(required=False, label=' Vendor? ')
+    is_vendor_discovered.widget.attrs = {
+        'data-toggle': 'tooltip',
+        'data-placement': 'top',
+        'title': 'Was the vendor discovered?'
+    }

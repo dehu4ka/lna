@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView, FormView
 from django.core.exceptions import PermissionDenied
 from net.models import Scripts, Job, Equipment
-from net.forms import TaskForm, ArchiveTasksForm, SubnetForm
+from net.forms import TaskForm, ArchiveTasksForm, SubnetForm, NEListForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
 from net.lib import celery_job_starter, scan_nets_with_fping, discover_vendor
@@ -181,5 +181,8 @@ class ClientsCount(LoginRequiredMixin, TemplateView):
         return context
 
 
-class NEList(LoginRequiredMixin, TemplateView):
+class NEList(LoginRequiredMixin, FormView, ListView):
     template_name = 'net/ne_list.html'
+    form_class = NEListForm
+    model = Equipment
+    success_url = 'net/ne_list'

@@ -13,6 +13,7 @@ from argus.forms import ArgusFileUploadForm, ArgusSearchForm, ASTUSearchForm
 from argus.argus_lib import parse_adsl_csv, parse_fttx_csv, parse_gpon_csv, parse_astu_csv, ip_pattern
 import re
 
+
 # Create your views here.
 # Загрузка из CSV файла
 class ClientImport(LoginRequiredMixin, TemplateView):
