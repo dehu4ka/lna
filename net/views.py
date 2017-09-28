@@ -194,27 +194,32 @@ class NEList(LoginRequiredMixin, ListView, FormView):
 
     def get_queryset(self):
         ne_list = Equipment.objects.all()
+
         if self.request.method == 'POST':
             form = NEListForm(self.request.POST)
             if form.is_valid():
-                if form.cleaned_data['is_login_discovered']:
-                    ne_list = ne_list.filter(credentials_id__isnull=False)
-                if form.cleaned_data['is_vendor_discovered']:
-                    ne_list = ne_list.filter(vendor__isnull=False)
-        if self.request.method == 'GET':
-            if self.request.GET.get('is_login_discovered'):
-                ne_list = ne_list.filter(credentials_id__isnull=False)
-            if self.request.GET.get('is_vendor_discovered'):
-                ne_list = ne_list.filter(vendor__isnull=False)
+                is_login_discovered = form.cleaned_data['is_login_discovered']
+                ne_list = ne_list.filter(credentials_id__isnull=False) if is_login_discovered else ne_list
+                is_vendor_discovered = form.cleaned_data['is_vendor_discovered']
+                ne_list = ne_list.filter(vendor__isnull=False) if is_vendor_discovered else ne_list
 
+        if self.request.method == 'GET':
+            is_login_discovered = self.request.GET.get('is_login_discovered')
+            ne_list = ne_list.filter(credentials_id__isnull=False) if \
+                (is_login_discovered or is_login_discovered == 'None') else ne_list
+            is_vendor_discovered = self.request.GET.get('is_login_discovered')
+            ne_list = ne_list.filter(vendor__isnull=False) if \
+                (is_vendor_discovered or is_vendor_discovered == 'None') else ne_list
         return ne_list
 
     def get_context_data(self, **kwargs):
         context = super(NEList, self).get_context_data(**kwargs)
         context['row_count'] = self.get_queryset().count()
         if self.request.method == 'GET':
-            context['is_login_discovered'] = self.request.GET.get('is_login_discovered')
-            context['is_vendor_discovered'] = self.request.GET.get('is_vendor_discovered')
+            if self.request.GET.get('is_login_discovered') == 'True':
+                context['is_login_discovered'] = 'True'
+            if self.request.GET.get('is_vendor_discovered') == 'True':
+                context['is_vendor_discovered'] = 'True'
         if self.request.method == 'POST':
             form = NEListForm(self.request.POST)
             if form.is_valid():
