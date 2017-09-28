@@ -64,16 +64,26 @@ def scan_nets_with_fping_task_version(subnets):
     # test to avoid double import
     found, new = 0, 0  # Found Alive IP's and created ones
     for subnet in subnets:
-        print(subnet)
         proc = subprocess.Popen(["/sbin/fping -O 160 -a -q -r 0 -g %s" % subnet], shell=True, stdout=subprocess.PIPE)
         proc.wait()
         out = proc.stdout.read()
         alive_list = out.decode().split('\n')[:-1]  # everything but the last empty
+        log.debug("alive list is:")
+        log.debug(alive_list)
         for ip in alive_list:
+            log.info("Trying to get or create object with IP = %s" % ip)
             obj, created = Equipment.objects.get_or_create(ne_ip=ip.split(' ')[0])
             found += 1
             if created:
                 new += 1
+                obj.hostname = None
+                obj.vendor = None
+                obj.model = None
+                obj.save()
+                log.info("object with IP = %s created and saved" % ip)
+            else:
+                log.info("object with IP = %s exists, can't create it again" % ip)
+            # return found, new
     return found, new
 
 
@@ -203,7 +213,8 @@ def celery_scan_nets_with_fping(self, subnets=('',)):
                       message='ping task was started')
     found, new, subnet_counter, result = 0, 0, 0, ''  # counters of alive hosts and loop below counter
     for subnet in subnets:
-        current_found, current_new = scan_nets_with_fping_task_version(list((subnet, )))  # we send only one subnet to func,
+        current_found, current_new = scan_nets_with_fping_task_version(list((subnet, )))
+        # we send only one subnet to func,
         # so we can update task status
         # Everything actually work makes 'scan_nets_with_fping', it will be found alive hosts and put new hosts to DB
         # So we need only to update task status:

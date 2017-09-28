@@ -61,6 +61,10 @@ def scan_nets_with_fping(subnets):
             found += 1
             if created:
                 new += 1
+                obj.hostname = None
+                obj.vendor = None
+                obj.model = None
+                obj.save()
     return found, new
 
 

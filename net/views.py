@@ -181,8 +181,46 @@ class ClientsCount(LoginRequiredMixin, TemplateView):
         return context
 
 
-class NEList(LoginRequiredMixin, FormView, ListView):
+class NEList(LoginRequiredMixin, ListView, FormView):
     template_name = 'net/ne_list.html'
     form_class = NEListForm
     model = Equipment
     success_url = 'net/ne_list'
+    paginate_by = 20
+    context_object_name = 'ne_list'
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        ne_list = Equipment.objects.all()
+        if self.request.method == 'POST':
+            form = NEListForm(self.request.POST)
+            if form.is_valid():
+                if form.cleaned_data['is_login_discovered']:
+                    ne_list = ne_list.filter(credentials_id__isnull=False)
+                if form.cleaned_data['is_vendor_discovered']:
+                    ne_list = ne_list.filter(vendor__isnull=False)
+        if self.request.method == 'GET':
+            if self.request.GET.get('is_login_discovered'):
+                ne_list = ne_list.filter(credentials_id__isnull=False)
+            if self.request.GET.get('is_vendor_discovered'):
+                ne_list = ne_list.filter(vendor__isnull=False)
+
+        return ne_list
+
+    def get_context_data(self, **kwargs):
+        context = super(NEList, self).get_context_data(**kwargs)
+        context['row_count'] = self.get_queryset().count()
+        if self.request.method == 'GET':
+            context['is_login_discovered'] = self.request.GET.get('is_login_discovered')
+            context['is_vendor_discovered'] = self.request.GET.get('is_vendor_discovered')
+        if self.request.method == 'POST':
+            form = NEListForm(self.request.POST)
+            if form.is_valid():
+                context['is_login_discovered'] = form.cleaned_data['is_login_discovered']
+                context['is_vendor_discovered'] = form.cleaned_data['is_vendor_discovered']
+
+        return context
+
+

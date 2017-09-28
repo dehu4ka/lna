@@ -57,9 +57,9 @@ class Credentials(models.Model):
 
 # proven-info model class
 class Equipment(models.Model):
-    hostname = models.CharField(max_length=512, default='', null=True)
-    vendor = models.CharField(max_length=512, default='', null=True)
-    model = models.CharField(max_length=512, default='', null=True)
+    hostname = models.CharField(max_length=512, null=True, default=None)
+    vendor = models.CharField(max_length=512, null=True, default=None)
+    model = models.CharField(max_length=512, null=True, default=None)
     # ne_ip = models.GenericIPAddressField(protocol='IPv4', db_index=True, unique=True)
     ne_ip = InetAddressField(db_index=True)
     credentials = models.ForeignKey(Credentials, on_delete=models.CASCADE, null=True)

@@ -35,17 +35,17 @@ class NEListForm(forms.Form):
     ip_or_subnet.widget.attrs = {
         'placeholder': 'search IP or Subnet',
         'class': 'form-control mb-2 mb-sm-0',
-        'size': 14,
+        # 'size': 14,
     }
 
-    is_login_discovered = forms.BooleanField(required=False, label=' Login? ')
+    is_login_discovered = forms.BooleanField(required=False, label='Login?')
     is_login_discovered.widget.attrs = {
         'data-toggle': 'tooltip',
         'data-placement': 'top',
         'title': 'Was the right login discovered?'
     }
 
-    is_vendor_discovered = forms.BooleanField(required=False, label=' Vendor? ')
+    is_vendor_discovered = forms.BooleanField(required=False, label='Vendor?')
     is_vendor_discovered.widget.attrs = {
         'data-toggle': 'tooltip',
         'data-placement': 'top',
