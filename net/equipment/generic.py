@@ -7,6 +7,7 @@ from net.equipment.exceptions import NoLoginPrompt, NoPasswordPrompt, NoKnownPas
     NotConnected
 from time import sleep
 from net.libs.colors import Colors
+from argus.models import ASTU
 
 c = Colors()
 
@@ -401,6 +402,31 @@ class GenericEquipment(object):
         self.is_logged = True
         return self.prompt
 
+    @staticmethod
+    def _multiline_search(search, where):
+        """
+        Performs multiline register-independent search and returns found value or False
+
+        :param search: regexp to search with capture group (!) in it
+
+        :param where: string where to search
+
+        :return: None if not found or match
+        """
+        result_match_object = re.search(search, where, re.M | re.I)
+        if result_match_object:
+            return result_match_object.groups()[0]  # first match
+
+        return None
+
+    def _put_model_and_hostname(self, model, hostname):
+        if hostname:
+            self.equipment_object.hostname = hostname
+            self.l.debug("found hostname: %s" % hostname)
+        if model:
+            self.equipment_object.model = model.strip()
+            self.l.debug("found model: %s" % model)
+
     def discover_vendor(self):
         """
         Puts some commands to NE for discovering vendor of it. If discovering was successful than writing to DB
@@ -412,44 +438,85 @@ class GenericEquipment(object):
         self.l.debug("Trying to discover vendor for: %s." % self.ip)
         if not self.is_logged:
             self.l.error("Must be logged in before vendor discovery")
-            return False # Must be logged in
+            return False  # Must be logged in
         found_vendor = False
         try:
             # CISCO, SNR, Juniper guessing
             show_version_command_output = self.exec_cmd('show ver')
-            if re.search(r'(SNR|NAG)', show_version_command_output, re.MULTILINE):
+            if self._multiline_search(r'(SNR|NAG)', show_version_command_output):
                 self.l.info("SNR device found at IP: %s" % self.ip)
                 found_vendor = 'SNR'
-            elif re.search(r'Cisco', show_version_command_output, re.MULTILINE):
+                hostname = self._multiline_search(r'(\S+)#', show_version_command_output)
+                model = self._multiline_search(r'(\S+) Device', show_version_command_output)
+                self._put_model_and_hostname(model, hostname)
+            elif self._multiline_search(r'(Cisco)', show_version_command_output):
                 self.l.info("Cisco device found at IP: %s" % self.ip)
                 found_vendor = 'Cisco'
-            elif re.search(r'JUNOS', show_version_command_output, re.MULTILINE):
+                hostname = self._multiline_search(r'(\S+) uptime is .+', show_version_command_output)
+                model = self._multiline_search(r'(.+) \(.+\) processor .+', show_version_command_output)
+                self._put_model_and_hostname(model, hostname)
+            elif self._multiline_search(r'(JUNOS)', show_version_command_output):
                 self.l.info("Juniper device found at IP: %s" % self.ip)
                 found_vendor = 'Juniper'
-            elif not found_vendor:
+                hostname = self._multiline_search(r'Hostname: (\S+)', show_version_command_output)
+                model = self._multiline_search(r'Model: (\S+)', show_version_command_output)
+                self._put_model_and_hostname(model, hostname)
+            elif re.search(r'raisecom', show_version_command_output, re.M|re.I):
+                self.l.info("Raisecom device found at IP: %s" % self.ip)
+                found_vendor = 'Raisecom'
+            if not found_vendor:
                 # Alcatel guessing
                 show_version_command_output = self.exec_cmd('show equipment isam')
                 if re.search(r'isam table', show_version_command_output, re.MULTILINE):
                     self.l.info("Alcatel device found at IP: %s" % self.ip)
                     found_vendor = 'Alcatel'
+                    try:
+                        astu = ASTU.objects.get(ne_ip=self.ip)
+                        self.equipment_object.model = astu.model
+                        self.equipment_object.hostname = astu.hostname
+                        self.l.debug("Alcatel DSLAM, using ASTU fallback. Hostname: %s, model: %s"
+                                     % (astu.hostname, astu.model))
+                    except ASTU.DoesNotExist:
+                        self.l.warning("Can't fallback to ASTU DB.")
             if not found_vendor:
                 # Zyxel ZYNOS guessing
                 show_version_command_output = self.exec_cmd('sys info show')
                 if re.search(r'ZyNOS', show_version_command_output, re.MULTILINE):
                     self.l.info("Zyxel device found at IP: %s" % self.ip)
                     found_vendor = 'Zyxel'
+                    hostname = self._multiline_search(r'Hostname: (\S+)', show_version_command_output)
+                    model = self._multiline_search(r'Model: (\S+)', show_version_command_output)
+                    self._put_model_and_hostname(model, hostname)
             if not found_vendor:
                 # Eltex guessing
                 show_version_command_output = self.exec_cmd('show system')
-                if re.search(r'System Description', show_version_command_output, re.MULTILINE):
+                if self._multiline_search(r'(System Description)', show_version_command_output):
                     self.l.info("Eltex device found at IP: %s" % self.ip)
                     found_vendor = 'Eltex'
+                    hostname = self._multiline_search(r'System Name:.+ (\S.+)', show_version_command_output)
+                    model = self._multiline_search(r'System Description: (.+)', show_version_command_output)
+                    self._put_model_and_hostname(model, hostname)
             if not found_vendor:
                 # Huawei guessing
                 show_version_command_output = self.exec_cmd('disp ver')
-                if re.search(r'HUAWEI', show_version_command_output, re.MULTILINE):
+                if self._multiline_search(r'(HUAWEI)', show_version_command_output):
                     self.l.info("Huawei device found at IP: %s" % self.ip)
                     found_vendor = 'Huawei'
+                    hostname = self._multiline_search(r'<(.+)>', show_version_command_output)
+                    model = self._multiline_search(r'Quidway (\S+)', show_version_command_output)
+                    self._put_model_and_hostname(model, hostname)
+            if not found_vendor:
+                # Linux guessing
+                show_version_command_output = self.exec_cmd('uname -a')
+                if re.search(r'Linux', show_version_command_output, re.MULTILINE):
+                    self.l.info("Linux device found at IP: %s" % self.ip)
+                    found_vendor = 'Linux'
+            if not found_vendor:
+                # DLink guessing
+                show_version_command_output = self.exec_cmd('show switch')
+                if re.search(r'Device Type ', show_version_command_output, re.MULTILINE):
+                    self.l.info("DLink device found at IP: %s" % self.ip)
+                    found_vendor = 'DLink'
         except EOFError:
             self.l.warning("Disconnected!")
             return False
