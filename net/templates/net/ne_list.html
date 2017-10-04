@@ -4,17 +4,42 @@
 {% block title %}Discovered NE List{% endblock %}
 
 {% block content %}
-    <h1>Discovered NE List</h1>
-
+    <h1 xmlns="http://www.w3.org/1999/html">Discovered NE List</h1>
     <form method="post" class="form-inline">
         {% csrf_token %}
         <div class="form-group mx-sm-3">
-                {{ form }}
+            {{ form.ip_or_subnet }}
+            <div class="card">
+                <div class="card-header p-1">Login discovered?</div>
+                <div class="btn-group card-block p-1 text-center" data-toggle="buttons">
+                    {% for log_el in form.is_login_discovered %}
+                        <label for="{{ log_el.id_for_label }}" class="btn btn-outline-primary btn-sm">
+                        {{ log_el.choice_label }}
+                        {{ log_el.tag }}
+                        <pre>12314{{ log_el.label_tag }}</pre>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card text-center">
+                <div class="card-header p-1">Vendor discovered?</div>
+                <div class="btn-group card-block p-1 btn-group-sm" data-toggle="buttons">
+                    {% for vendor_el in form.is_vendor_discovered %}
+                        <label for="{{ vendor_el.id_for_label }}" class="btn btn-outline-primary btn-sm">
+                        {{ vendor_el.choice_label }}
+                        {{ vendor_el.tag }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
+
+
         <button type="submit" class="btn btn-primary">Search</button>
     </form>
 
-<p>Найдено: {{ row_count }}</p>
+<p>Найдено: {{ row_count }}.</p>
+<p>Login_var: {{ is_login_discovered }}. Vendor var: {{ is_vendor_discovered }}</p>
     {% if ne_list %}
         </div>
             <div class="container-fluid">
