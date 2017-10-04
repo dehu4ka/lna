@@ -8,6 +8,7 @@ from django.contrib import messages
 from net.equipment.generic import GenericEquipment
 from net.lib import celery_job_starter, scan_nets_with_fping, discover_vendor
 from argus.models import Client, ASTU
+import re
 
 
 # Create your views here.
@@ -195,36 +196,69 @@ class NEList(LoginRequiredMixin, ListView, FormView):
     def get_queryset(self):
         ne_list = Equipment.objects.all()
 
+        # defaults
+        is_login_discovered = 'any'  # any value
+        is_vendor_discovered = 'any'
+        ip_or_subnet = ''
+
         if self.request.method == 'POST':
             form = NEListForm(self.request.POST)
             if form.is_valid():
                 is_login_discovered = form.cleaned_data['is_login_discovered']
-                ne_list = ne_list.filter(credentials_id__isnull=False) if is_login_discovered else ne_list
                 is_vendor_discovered = form.cleaned_data['is_vendor_discovered']
-                ne_list = ne_list.filter(vendor__isnull=False) if is_vendor_discovered else ne_list
+                ip_or_subnet = form.cleaned_data['ip_or_subnet']
 
         if self.request.method == 'GET':
             is_login_discovered = self.request.GET.get('is_login_discovered')
-            ne_list = ne_list.filter(credentials_id__isnull=False) if \
-                (is_login_discovered or is_login_discovered == 'None') else ne_list
             is_vendor_discovered = self.request.GET.get('is_login_discovered')
-            ne_list = ne_list.filter(vendor__isnull=False) if \
-                (is_vendor_discovered or is_vendor_discovered == 'None') else ne_list
+            ip_or_subnet = self.request.GET.get('ip_or_subnet')
+
+        # Filter login_discovered
+        if is_login_discovered == 'yes':
+            ne_list = ne_list.filter(credentials_id__isnull=False)
+        elif is_login_discovered == 'no':
+            ne_list = ne_list.filter(credentials_id__isnull=True)
+        else:  # 'any'
+            pass
+
+        # Filter vendor discovered
+        if is_vendor_discovered == 'yes':
+            ne_list = ne_list.filter(vendor__isnull=False)
+        elif is_vendor_discovered == 'no':
+            ne_list = ne_list.filter(vendor__isnull=True)
+        else:  # any
+            pass
+
+        ip_re = r'^([0-9]+\.){3}[0-9]+$'
+        mask_re = r'^([0-9]+\.){3}[0-9]+\/\d{1,2}$'
+        # IP / hostname / subnet filtering
+        if ip_or_subnet:
+            if re.match(ip_re, ip_or_subnet):  # IP-address only
+                ne_list = ne_list.filter(ne_ip=ip_or_subnet)
+            elif re.match(mask_re, ip_or_subnet):  # Subnet
+                try:
+                    ne_list = ne_list.filter(ne_ip__net_contained=ip_or_subnet)
+                except ValueError as err:
+                    messages.add_message(self.request, messages.ERROR, 'Subnet search error. ' + str(err))
+            else:  # filtering by hostname
+                ne_list = ne_list.filter(hostname__icontains=ip_or_subnet)
+
+        # return result
         return ne_list
 
     def get_context_data(self, **kwargs):
         context = super(NEList, self).get_context_data(**kwargs)
         context['row_count'] = self.get_queryset().count()
         if self.request.method == 'GET':
-            if self.request.GET.get('is_login_discovered') == 'True':
-                context['is_login_discovered'] = 'True'
-            if self.request.GET.get('is_vendor_discovered') == 'True':
-                context['is_vendor_discovered'] = 'True'
+            context['is_login_discovered'] = self.request.GET.get('is_login_discovered')
+            context['is_vendor_discovered'] = self.request.GET.get('is_vendor_discovered')
+            context['ip_or_subnet'] = self.request.GET.get('ip_or_subnet')
         if self.request.method == 'POST':
             form = NEListForm(self.request.POST)
             if form.is_valid():
                 context['is_login_discovered'] = form.cleaned_data['is_login_discovered']
                 context['is_vendor_discovered'] = form.cleaned_data['is_vendor_discovered']
+                context['ip_or_subnet'] = form.cleaned_data['ip_or_subnet']
 
         return context
 

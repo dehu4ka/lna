@@ -7,16 +7,18 @@
     <h1 xmlns="http://www.w3.org/1999/html">Discovered NE List</h1>
     <form method="post" class="form-inline">
         {% csrf_token %}
-        <div class="form-group mx-sm-3">
+        <input type="hidden" name="login_discovered_from_server" value="{{ is_login_discovered }}" id="login_discovered_from_server">
+        <input type="hidden" name="vendor_discovered_from_server" value="{{ is_vendor_discovered }}" id="vendor_discovered_from_server">
+        <input type="hidden" name="ip_or_subnet" value="{{ ip_or_subnet }}" id="ip_or_subnet_from_server">
+        <div class="form-group mx-sm-3 m-1">
             {{ form.ip_or_subnet }}
-            <div class="card">
+            <div class="card text-center">
                 <div class="card-header p-1">Login discovered?</div>
-                <div class="btn-group card-block p-1 text-center" data-toggle="buttons">
+                <div class="btn-group card-block p-1 text-center" data-toggle="buttons" id="login_selected_group">
                     {% for log_el in form.is_login_discovered %}
                         <label for="{{ log_el.id_for_label }}" class="btn btn-outline-primary btn-sm">
                         {{ log_el.choice_label }}
                         {{ log_el.tag }}
-                        <pre>12314{{ log_el.label_tag }}</pre>
                         </label>
                     {% endfor %}
                 </div>
@@ -39,7 +41,7 @@
     </form>
 
 <p>Найдено: {{ row_count }}.</p>
-<p>Login_var: {{ is_login_discovered }}. Vendor var: {{ is_vendor_discovered }}</p>
+<!-- <p>Login_var: {{ is_login_discovered }}. Vendor var: {{ is_vendor_discovered }} Search: {{ ip_or_subnet }}</p> -->
     {% if ne_list %}
         </div>
             <div class="container-fluid">
@@ -58,7 +60,7 @@
         {% for ne in ne_list %}
             <tr>
                 <td>{{ ne.hostname }}</td>
-                <td>{{ ne.ne_ip }}</td>
+                <td>{{ ne.ne_ip|slice:":-3" }}</td>
                 <td>{{ ne.vendor }}</td>
                 <td>{{ ne.model }}</td>
                 <td>{{ ne.credentials_id }}</td>
@@ -77,7 +79,7 @@
         <nav>
         <ul class="pagination">
             {% if page_obj.has_previous %}
-                <li class="page-item"><a href="?page={{ page_obj.previous_page_number }}&is_login_discovered={{ is_login_discovered }}&is_vendor_discovered={{ is_vendor_discovered }}" class="page-link">&laquo;</a></li>
+                <li class="page-item"><a href="?page={{ page_obj.previous_page_number }}&is_login_discovered={{ is_login_discovered }}&is_vendor_discovered={{ is_vendor_discovered }}&ip_or_subnet={{ ip_or_subnet }}" class="page-link">&laquo;</a></li>
             {% else %}
                 <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
             {% endif %}
@@ -85,11 +87,11 @@
                 {% if page_obj.number == i %}
                     <li class="active page-item"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
                 {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
-                    <li class="page-item"><a href="?page={{ i }}&is_login_discovered={{ is_login_discovered }}&is_vendor_discovered={{ is_vendor_discovered }}" class="page-link">{{ i }}</a></li>
+                    <li class="page-item"><a href="?page={{ i }}&is_login_discovered={{ is_login_discovered }}&is_vendor_discovered={{ is_vendor_discovered }}&ip_or_subnet={{ ip_or_subnet }}" class="page-link">{{ i }}</a></li>
                 {% endif %}
             {% endfor %}
             {% if page_obj.has_next %}
-                <li class="page-item"><a href="?page={{ page_obj.next_page_number }}&is_login_discovered={{ is_login_discovered }}&is_vendor_discovered={{ is_vendor_discovered }}" class="page-link">&raquo;</a></li>
+                <li class="page-item"><a href="?page={{ page_obj.next_page_number }}&is_login_discovered={{ is_login_discovered }}&is_vendor_discovered={{ is_vendor_discovered }}&ip_or_subnet={{ ip_or_subnet }}" class="page-link">&raquo;</a></li>
             {% else %}
                 <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
             {% endif %}
@@ -105,7 +107,58 @@
     // tooltip initialization
     $(function () {
       $('[data-toggle="tooltip"]').tooltip()
-    })
+    });
+    // according to https://getbootstrap.com/docs/4.0/components/buttons/#checkbox-and-radio-buttons
+    // we need JS to set button-groups radios checked
+
+    var is_login_discovered = $('#login_discovered_from_server').val();
+    var is_vendor_discovered = $('#vendor_discovered_from_server').val();
+    var ip_or_subnet = $('#ip_or_subnet_from_server').val();
+
+    if (ip_or_subnet !== '' && ip_or_subnet !== 'None') {
+        $('#id_ip_or_subnet').val(ip_or_subnet)
+    }
+
+    switch (is_login_discovered) {
+        case 'yes':
+            $('#id_is_login_discovered_0').prop('checked', 'true');
+            $('label[for="id_is_login_discovered_0"]').addClass('active');
+            break;
+        case 'no':
+            $('#id_is_login_discovered_1').prop('checked', 'true');
+            $('label[for="id_is_login_discovered_1"]').addClass('active');
+
+            break;
+        case 'any':
+            $('#id_is_login_discovered_2').prop('checked', 'true');
+            $('label[for="id_is_login_discovered_2"]').addClass('active');
+            break;
+        default: // Don't care
+            $('#id_is_login_discovered_2').prop('checked', 'true');
+            $('label[for="id_is_login_discovered_2"]').addClass('active');
+            break;
+    }
+
+    switch (is_vendor_discovered) {
+        case 'yes':
+            $('#id_is_vendor_discovered_0').prop('checked', 'true');
+            $('label[for="id_is_vendor_discovered_0"]').addClass('active');
+            break;
+        case 'no':
+            $('#id_is_vendor_discovered_1').prop('checked', 'true');
+            $('label[for="id_is_vendor_discovered_1"]').addClass('active');
+
+            break;
+        case 'any':
+            $('#id_is_vendor_discovered_2').prop('checked', 'true');
+            $('label[for="id_is_vendor_discovered_2"]').addClass('active');
+            break;
+        default: // Don't care
+            $('#id_is_vendor_discovered_2').prop('checked', 'true');
+            $('label[for="id_is_vendor_discovered_2"]').addClass('active');
+            break;
+    }
+
     </script>
 
 {% endblock %}

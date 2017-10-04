@@ -33,9 +33,9 @@ class SubnetForm(forms.Form):
 class NEListForm(forms.Form):
     ip_or_subnet = forms.CharField(widget=forms.TextInput, label='', required=False)
     ip_or_subnet.widget.attrs = {
-        'placeholder': 'search IP or Subnet',
-        'class': 'form-control',
-        'size': 14,
+        'placeholder': 'IP/Subnet/Hostname',
+        'class': 'form-control m-1',
+        # 'size': 15,
     }
 
     LOGIN_CHOICES = [
