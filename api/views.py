@@ -1,11 +1,15 @@
 from django.contrib.auth.models import User, Group
+from django.http import Http404
 from rest_framework.response import Response
 from argus.models import ASTU
 from rest_framework import viewsets, status
-from api.serializers import NESerializer, ListVendorsSerializer, ListModelsSerializer, JobModelSerializer
-from net.models import Job
+from api.serializers import NESerializer, ListVendorsSerializer, ListModelsSerializer, JobModelSerializer, \
+    NEDetailsSerializer
+from net.models import Job, Equipment
 from lna.taskapp.celery_app import app
 from rest_framework.views import APIView
+from net.lib import discover_vendor
+from net.equipment.generic import GenericEquipment
 
 
 class NEViewSet(viewsets.ModelViewSet):
@@ -47,7 +51,20 @@ class ListTasks(viewsets.ModelViewSet):
 
 class NEDetail(APIView):
     def get_object(self, pk):
-        pass
+        try:
+            return Equipment.objects.get(pk=pk)
+        except Equipment.DoesNotExist:
+            raise Http404
 
     def get(self, request, pk, *args, **kwargs):
-        pass
+        """ Refreshing NE details and returns it's serializer """
+        equipment = self.get_object(pk)
+        generic_equipment = GenericEquipment(equipment_object=equipment)
+        if generic_equipment.suggest_login(resuggest=False):
+            # Trying to login only if login guessing was successful
+            generic_equipment.do_login()
+            if generic_equipment.discover_vendor():
+                generic_equipment.disconnect()
+
+        serializer = NEDetailsSerializer(equipment)
+        return Response(serializer.data)

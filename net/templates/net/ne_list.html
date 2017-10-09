@@ -52,6 +52,7 @@
                     <th>IP</th>
                     <th>Vendor</th>
                     <th>Model</th>
+                    <th>SW Ver</th>
                     <th>Login/pass</th>
                 </tr>
                 </thead>
@@ -63,6 +64,7 @@
                 <td>{{ ne.ne_ip|slice:":-3" }}</td>
                 <td>{{ ne.vendor }}</td>
                 <td>{{ ne.model }}</td>
+                <td>{{ ne.sw_version }}</td>
                 <td>{{ ne.credentials_id }}</td>
             </tr>
 

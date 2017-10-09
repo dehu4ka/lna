@@ -354,7 +354,9 @@ class GenericEquipment(object):
             raise NoKnownPassword
         if self.is_connected:
             self.disconnect()
-        self.connect()  # connecting
+        if not self.connect():
+            return False
+        # connecting
         was_found, out = self.expect(LOGIN_PROMPTS)  # we need to wait for login prompt
         self._print_recv(out)  # debug out
         self.send(self.username)  # sending known username
@@ -446,7 +448,14 @@ class GenericEquipment(object):
         try:
             # CISCO, SNR, Juniper guessing
             show_version_command_output = self.exec_cmd('show ver')
-            if self._multiline_search(r'(SNR|NAG)', show_version_command_output):
+            if self._multiline_search(r'(JUNOS)', show_version_command_output):
+                self.l.info("Juniper device found at IP: %s" % self.ip)
+                found_vendor = 'Juniper'
+                hostname = self._multiline_search(r'Hostname: (\S+)', show_version_command_output)
+                model = self._multiline_search(r'Model: (\S+)', show_version_command_output)
+                sw_version = self._multiline_search(r'(?:)\[(.+)\]', show_version_command_output)
+                self._put_model_and_hostname(model, hostname, sw_version)
+            elif self._multiline_search(r'(SNR|NAG)', show_version_command_output):
                 self.l.info("SNR device found at IP: %s" % self.ip)
                 found_vendor = 'SNR'
                 hostname = self._multiline_search(r'(\S+)#', show_version_command_output)
@@ -458,14 +467,10 @@ class GenericEquipment(object):
                 found_vendor = 'Cisco'
                 hostname = self._multiline_search(r'(\S+) uptime is .+', show_version_command_output)
                 model = self._multiline_search(r'(.+) \(.+\) processor .+', show_version_command_output)
-                self._put_model_and_hostname(model, hostname)
-            elif self._multiline_search(r'(JUNOS)', show_version_command_output):
-                self.l.info("Juniper device found at IP: %s" % self.ip)
-                found_vendor = 'Juniper'
-                hostname = self._multiline_search(r'Hostname: (\S+)', show_version_command_output)
-                model = self._multiline_search(r'Model: (\S+)', show_version_command_output)
-                self._put_model_and_hostname(model, hostname)
-            elif re.search(r'raisecom', show_version_command_output, re.M|re.I):
+                sw_version = self._multiline_search(r'System image file is "(?:flash:|disk2:)\/*(.+)"',
+                                                    show_version_command_output)
+                self._put_model_and_hostname(model, hostname, sw_version)
+            elif re.search(r'raisecom', show_version_command_output, re.M | re.I):
                 self.l.info("Raisecom device found at IP: %s" % self.ip)
                 found_vendor = 'Raisecom'
             if not found_vendor:
@@ -499,7 +504,11 @@ class GenericEquipment(object):
                     found_vendor = 'Eltex'
                     hostname = self._multiline_search(r'System Name:.+ (\S.+)', show_version_command_output)
                     model = self._multiline_search(r'System Description: (.+)', show_version_command_output)
-                    self._put_model_and_hostname(model, hostname)
+                    # one more 'show ver' command to determine software version
+                    show_version_command_output = self.exec_cmd('\nshow version')
+                    self.l.info(show_version_command_output)
+                    sw_version = self._multiline_search(r'SW version (.+) \(.+', show_version_command_output)
+                    self._put_model_and_hostname(model, hostname, sw_version)
             if not found_vendor:
                 # Huawei guessing
                 show_version_command_output = self.exec_cmd('disp ver')
@@ -508,7 +517,8 @@ class GenericEquipment(object):
                     found_vendor = 'Huawei'
                     hostname = self._multiline_search(r'<(.+)>', show_version_command_output)
                     model = self._multiline_search(r'Quidway (\S+)', show_version_command_output)
-                    self._put_model_and_hostname(model, hostname)
+                    sw_version = self._multiline_search(r'Version (\d.+)', show_version_command_output)
+                    self._put_model_and_hostname(model, hostname, sw_version)
             if not found_vendor:
                 # Linux guessing
                 show_version_command_output = self.exec_cmd('uname -a')
