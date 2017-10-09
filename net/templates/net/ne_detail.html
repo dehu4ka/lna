@@ -10,6 +10,26 @@
         <tr><td>Model</td><td>{{ object.model }}</td></tr>
         <tr><td>Login</td><td>{{ object.credentials.login }}</td></tr>
         <tr><td>Passw</td><td><a class="btn btn-outline-primary btn-sm" data-toggle="collapse" href="#pass" aria-expanded="false" aria-controls="pass">Show</a>
-            <span class="collapse" id="pass">{{ object.credentials.passw }}</span></td></tr>
+            <div class="collapse" id="pass">{{ object.credentials.passw }}</div>
+        </td></tr>
+        <tr><td>Ports</td><td><a class="btn btn-outline-primary btn-sm" data-toggle="collapse" href="#ports" aria-expanded="false" aria-controls="ports">Show</a>
+            <div class="collapse" id="ports">ports</div>
+        </td></tr>
+        <tr><td>Config</td><td><a class="btn btn-outline-primary btn-sm" data-toggle="collapse" href="#conf" aria-expanded="false" aria-controls="conf">Show</a>
+            <div class="collapse" id="conf">config</div>
+        </td></tr>
     </table>
+    <button class="btn btn-danger" type="button" id="rediscover">Rediscover</button>
+{% endblock %}
+
+{% block javascript %}
+    {{ block.super }}
+    <script>
+    function do_rediscover(ip) {
+        alert(ip);
+    }
+    $('#rediscover').click(function () {
+        do_rediscover('{{ object.ne_ip }}')
+    })
+    </script>
 {% endblock %}

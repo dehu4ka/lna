@@ -419,13 +419,16 @@ class GenericEquipment(object):
 
         return None
 
-    def _put_model_and_hostname(self, model, hostname):
+    def _put_model_and_hostname(self, model, hostname, sw_version=None):
         if hostname:
             self.equipment_object.hostname = hostname
             self.l.debug("found hostname: %s" % hostname)
         if model:
             self.equipment_object.model = model.strip()
             self.l.debug("found model: %s" % model)
+        if sw_version:
+            self.equipment_object.sw_version = sw_version
+            self.l.debug("found sw_version: %s" % sw_version)
 
     def discover_vendor(self):
         """
@@ -448,7 +451,8 @@ class GenericEquipment(object):
                 found_vendor = 'SNR'
                 hostname = self._multiline_search(r'(\S+)#', show_version_command_output)
                 model = self._multiline_search(r'(\S+) Device', show_version_command_output)
-                self._put_model_and_hostname(model, hostname)
+                sw_version = self._multiline_search(r'SoftWare Version (.+)', show_version_command_output)
+                self._put_model_and_hostname(model, hostname, sw_version)
             elif self._multiline_search(r'(Cisco)', show_version_command_output):
                 self.l.info("Cisco device found at IP: %s" % self.ip)
                 found_vendor = 'Cisco'

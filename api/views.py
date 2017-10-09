@@ -5,6 +5,7 @@ from rest_framework import viewsets, status
 from api.serializers import NESerializer, ListVendorsSerializer, ListModelsSerializer, JobModelSerializer
 from net.models import Job
 from lna.taskapp.celery_app import app
+from rest_framework.views import APIView
 
 
 class NEViewSet(viewsets.ModelViewSet):
@@ -42,3 +43,11 @@ class ListTasks(viewsets.ModelViewSet):
         super(ListTasks, self).destroy(request, *args, **kwargs)
 
 """
+
+
+class NEDetail(APIView):
+    def get_object(self, pk):
+        pass
+
+    def get(self, request, pk, *args, **kwargs):
+        pass
