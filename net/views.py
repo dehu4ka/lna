@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import TemplateView, ListView, FormView
+from django.views.generic import TemplateView, ListView, FormView, DetailView
 from django.core.exceptions import PermissionDenied
 from net.models import Scripts, Job, Equipment
 from net.forms import TaskForm, ArchiveTasksForm, SubnetForm, NEListForm
@@ -263,3 +263,6 @@ class NEList(LoginRequiredMixin, ListView, FormView):
         return context
 
 
+class NEDetail(LoginRequiredMixin, DetailView):
+    template_name = 'net/ne_detail.html'
+    model = Equipment

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}NE Detail {{ object.hostname }}{% endblock %}
+
+{% block content %}
+    <table class="table table-striped table-sm table-hover">
+        <tr><td>Hostname</td><td>{{ object.hostname }}</td></tr>
+        <tr><td>IP</td><td>{{ object.ne_ip }}</td></tr>
+        <tr><td>Vendor</td><td>{{ object.vendor }}</td></tr>
+        <tr><td>Model</td><td>{{ object.model }}</td></tr>
+        <tr><td>Login</td><td>{{ object.credentials.login }}</td></tr>
+        <tr><td>Passw</td><td><a class="btn btn-outline-primary btn-sm" data-toggle="collapse" href="#pass" aria-expanded="false" aria-controls="pass">Show</a>
+            <span class="collapse" id="pass">{{ object.credentials.passw }}</span></td></tr>
+    </table>
+{% endblock %}
