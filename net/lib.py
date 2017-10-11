@@ -20,32 +20,27 @@ def celery_job_starter(destinations_ids, script_id):
     """
     if destinations_ids == list():
         return False
-    job = Job()  # new Job model object
-
-    job.script = Scripts.objects.get(id=script_id)  # getting related Script object'
 
     if script_id == '1':
         # ping
-        task = ping_task.delay(destinations_ids)
+        # task = ping_task.delay(destinations_ids)
+        task = ping_task.apply_async((destinations_ids,), track_started=True)
     elif script_id == '2':
-        task = long_job_task.delay()
+        # task = long_job_task.delay()
+        task = long_job_task.apply_async(track_started=True)
     elif script_id == '3':
-        task = login_suggest_task.delay(destinations_ids)
+        # task = login_suggest_task.delay(destinations_ids)
+        task = login_suggest_task.apply_async((destinations_ids,), track_started=True)
     elif script_id == '999':
-        task = celery_scan_nets_with_fping.delay(subnets=destinations_ids)
-        destinations_ids = list()  # Empty list. We don't need to pick ASTU id's for discovery task
+        # task = celery_scan_nets_with_fping.delay(subnets=destinations_ids)
+        task = celery_scan_nets_with_fping.apply_async(kwargs={'subnets': destinations_ids}, track_started=True)
     elif script_id == '1000':
-        task = celery_discover_vendor.delay(subnets=destinations_ids)
-        destinations_ids = list()  # Empty list. We don't need to pick ASTU id's for discovery task
+        # task = celery_discover_vendor.delay(subnets=destinations_ids)
+        task = celery_discover_vendor.apply_async(kwargs={'subnets': destinations_ids}, track_started=True)
     else:
         return False
-    job.celery_id = task.task_id
-    job.status = 'PENDING'
-    job.save()
-    for ne in destinations_ids:
-        job.ne_ids.add(ASTU.objects.get(pk=ne))
-    job.save()
 
+    # task.track_started = True  # not enabled by default
     pass
 
 

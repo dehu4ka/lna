@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 
 
 def update_job_status(celery_id, state=None, meta=None, result=None, message=None):
-    job_exists = False  # Job in DB doesn't appears instantly. So we need somehow handle that behavior
+    """job_exists = False  # Job in DB doesn't appears instantly. So we need somehow handle that behavior
     while not job_exists:
         try:
             job = Job.objects.get(celery_id=celery_id)
@@ -57,7 +57,8 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
             "result": result,
             'result_update': message
         })}
-    )
+    )"""
+    pass
 
 
 def scan_nets_with_fping_task_version(subnets):
@@ -87,7 +88,7 @@ def scan_nets_with_fping_task_version(subnets):
     return found, new
 
 
-@shared_task
+@shared_task(time_limit=10*60)
 def long_job(job_id, reply_channel):
     for i in range(3):
         log.info("Tick " + str(i))
@@ -97,7 +98,7 @@ def long_job(job_id, reply_channel):
     pass
 
 
-@shared_task
+@shared_task(time_limit=10*60)
 def check_online():
     """
     Checking NE status with FPING
@@ -129,7 +130,7 @@ def get_destination_ips_list(destination_ids):
     return [ASTU.objects.get(pk=ne_id).ne_ip for ne_id in destination_ids]  # list of IPs
 
 
-@app.task(bind=True)
+@app.task(bind=True, time_limit=10*60)
 def login_suggest_task(self, destination_ids):
     log.info('celery task in login_suggest.py')
     total = len(destination_ids)
@@ -168,7 +169,7 @@ def login_suggest_task(self, destination_ids):
     return task_result
 
 
-@app.task(bind=True)
+@app.task(bind=True, time_limit=10*60)
 def ping_task(self, destination_ids, **kwargs):
     log.warning("celery task in ping.py ")
     update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': len(destination_ids)},
@@ -182,13 +183,13 @@ def ping_task(self, destination_ids, **kwargs):
     update_job_status(self.request.id, state=states.SUCCESS, result=out, message='DONE!')
 
 
-@app.task(bind=True)
+@app.task(bind=True, time_limit=10*60)
 def long_job_task(self, *args, **kwargs):
     RANGE = 60  # how long it will be runs
     for i in range(RANGE):
         time.sleep(1)
         log.debug('Tick %s of %s' % (str(i), str(RANGE)))
-        self.update_state(states.STARTED, meta={'current': i, 'total': RANGE})
+        self.update_state(state=states.STARTED, meta={'current': i, 'total': RANGE})
         message_to_user = "current: %s, total: %s" % (str(i), str(RANGE))
         update_job_status(self.request.id, state=states.STARTED, meta={'current': i, 'total': RANGE}, message=message_to_user)
     # meta is JSON field, it cant' be empty
@@ -197,7 +198,7 @@ def long_job_task(self, *args, **kwargs):
     return {"status": "Long Task completed", "num_of_seconds": RANGE}
 
 
-@app.task(bind=True)
+@app.task(bind=True, time_limit=20*60)
 def celery_scan_nets_with_fping(self, subnets=('',)):
     """
     Task for scan subnets with fping
@@ -253,7 +254,7 @@ def discover_one_host(host):
     return message_from_celery
 
 
-@app.task(bind=True)
+@app.task(bind=True, time_limit=20*60)
 def celery_discover_vendor(self, subnets):
     """
     Does network element discovery and finds logins/passwords from credentials database. Works in Celery
