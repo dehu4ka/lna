@@ -21,26 +21,43 @@ def celery_job_starter(destinations_ids, script_id):
     if destinations_ids == list():
         return False
 
+    job = Job()
+    job.script = Scripts.objects.get(id=script_id)
+
+    # We need to run celery task with some countdown.
+    COUNTDOWN = 3.0
+
     if script_id == '1':
         # ping
         # task = ping_task.delay(destinations_ids)
-        task = ping_task.apply_async((destinations_ids,), track_started=True)
+        task = ping_task.apply_async((destinations_ids,), track_started=True, countdown=COUNTDOWN)
     elif script_id == '2':
         # task = long_job_task.delay()
-        task = long_job_task.apply_async(track_started=True)
+        task = long_job_task.apply_async(track_started=True, countdown=COUNTDOWN)
     elif script_id == '3':
         # task = login_suggest_task.delay(destinations_ids)
-        task = login_suggest_task.apply_async((destinations_ids,), track_started=True)
+        task = login_suggest_task.apply_async((destinations_ids,), track_started=True, countdown=COUNTDOWN)
     elif script_id == '999':
         # task = celery_scan_nets_with_fping.delay(subnets=destinations_ids)
-        task = celery_scan_nets_with_fping.apply_async(kwargs={'subnets': destinations_ids}, track_started=True)
+        task = celery_scan_nets_with_fping.apply_async(kwargs={'subnets': destinations_ids}, track_started=True,
+                                                       countdown=COUNTDOWN)
+        destinations_ids = list()
     elif script_id == '1000':
         # task = celery_discover_vendor.delay(subnets=destinations_ids)
-        task = celery_discover_vendor.apply_async(kwargs={'subnets': destinations_ids}, track_started=True)
+        task = celery_discover_vendor.apply_async(kwargs={'subnets': destinations_ids}, track_started=True,
+                                                  countdown=COUNTDOWN)
+        destinations_ids = list()
     else:
         return False
 
-    # task.track_started = True  # not enabled by default
+    job.celery_id = task.task_id
+    job.status = 'PENDING'
+    job.save()
+
+    # Adding NE id's to Job table, so we can put NE's to template
+    for ne in destinations_ids:
+        job.ne_ids.add(ASTU.objects.get(pk=ne))
+        job.save()
     pass
 
 

@@ -20,15 +20,15 @@ MAX_WORKERS = multiprocessing.cpu_count()*10
 log = logging.getLogger(__name__)
 
 
-def update_job_status(celery_id, state=None, meta=None, result=None, message=None):
-    """job_exists = False  # Job in DB doesn't appears instantly. So we need somehow handle that behavior
-    while not job_exists:
-        try:
-            job = Job.objects.get(celery_id=celery_id)
-            job_exists = True
-        except ObjectDoesNotExist:
-            log.warning('update_job_status: Job object still not exists, sleeping 1 sec')
-            time.sleep(1)
+def update_job_status(app_task, state=None, meta=None, result=None, message=None):
+    celery_id = app_task.request.id
+    job, is_created = Job.objects.get_or_create(celery_id=celery_id)
+    if is_created:
+        log.warning('update_job_status: Job object was created in job itself, not in django!')
+        job.name = app_task.name
+        job.script_id = 777  # Crontab or direct called script
+    app_task.update_state(state=state, meta=meta)
+
     if state:
         job.status = state
         if state == 'SUCCESS':
@@ -57,7 +57,7 @@ def update_job_status(celery_id, state=None, meta=None, result=None, message=Non
             "result": result,
             'result_update': message
         })}
-    )"""
+    )
     pass
 
 
@@ -134,7 +134,7 @@ def get_destination_ips_list(destination_ids):
 def login_suggest_task(self, destination_ids):
     log.info('celery task in login_suggest.py')
     total = len(destination_ids)
-    update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': total},
+    update_job_status(self, state=states.STARTED, meta={'current': 0, 'total': total},
                       message='Login Suggest task was started')
     i = 1  # counter for updating progress
     task_result = ""  # After-all result of discovering credentials
@@ -153,7 +153,7 @@ def login_suggest_task(self, destination_ids):
             else:
                 result_to_send = "<br>Failed to discover credentials for %s" % (astu_object.ne_ip, )
                 task_result += "<br>Failed to discover credentials for %s" % (astu_object.ne_ip, )
-            update_job_status(self.request.id, state=states.STARTED, meta={'current': i, 'total': total},
+            update_job_status(self, state=states.STARTED, meta={'current': i, 'total': total},
                               message=result_to_send)
             i += 1
         except TaskRevokedError:
@@ -165,14 +165,14 @@ def login_suggest_task(self, destination_ids):
         except WorkerTerminate:
             log.error("WORKER WAS Terminated!")
             break
-    update_job_status(self.request.id, state=states.SUCCESS, result=task_result, message='DONE!')
+    update_job_status(self, state=states.SUCCESS, result=task_result, message='DONE!')
     return task_result
 
 
 @app.task(bind=True, time_limit=10*60)
 def ping_task(self, destination_ids, **kwargs):
     log.warning("celery task in ping.py ")
-    update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': len(destination_ids)},
+    update_job_status(self, state=states.STARTED, meta={'current': 0, 'total': len(destination_ids)},
                       message='ping task was started')
     targets = get_destination_ips_list(destination_ids)
     targets = " ".join(targets)  # string with space separated IPs
@@ -180,7 +180,7 @@ def ping_task(self, destination_ids, **kwargs):
     proc.wait()
     out = b2a(proc.stdout.read())  # convert from binary to ascii
     out = out.replace("\n", "<br>\n")  # some html breaks
-    update_job_status(self.request.id, state=states.SUCCESS, result=out, message='DONE!')
+    update_job_status(self, state=states.SUCCESS, result=out, message='DONE!')
 
 
 @app.task(bind=True, time_limit=10*60)
@@ -189,12 +189,10 @@ def long_job_task(self, *args, **kwargs):
     for i in range(RANGE):
         time.sleep(1)
         log.debug('Tick %s of %s' % (str(i), str(RANGE)))
-        self.update_state(state=states.STARTED, meta={'current': i, 'total': RANGE})
         message_to_user = "current: %s, total: %s" % (str(i), str(RANGE))
-        update_job_status(self.request.id, state=states.STARTED, meta={'current': i, 'total': RANGE}, message=message_to_user)
+        update_job_status(self, state=states.STARTED, meta={'current': i, 'total': RANGE}, message=message_to_user)
     # meta is JSON field, it cant' be empty
-    update_job_status(self.request.id, state=states.SUCCESS, result='My Mega Long Result', message='DONE!')
-    self.update_state(states.SUCCESS)
+    update_job_status(self, state=states.SUCCESS, result='My Mega Long Result', message='DONE!')
     return {"status": "Long Task completed", "num_of_seconds": RANGE}
 
 
@@ -210,7 +208,7 @@ def celery_scan_nets_with_fping(self, subnets=('',)):
     :return: None
     """
     log.warning("celery task in celery_scan_nets_with_fping")
-    update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': len(subnets)},
+    update_job_status(self, state=states.STARTED, meta={'current': 0, 'total': len(subnets)},
                       message='ping task was started')
     found, new, subnet_counter, result = 0, 0, 0, ''  # counters of alive hosts and loop below counter
     for subnet in subnets:
@@ -223,11 +221,11 @@ def celery_scan_nets_with_fping(self, subnets=('',)):
         found += current_found
         new += current_new
         result += "<br>\n" + 'Scan of %s result: %s alive, %s new hosts' % (subnet, current_found, current_new)
-        update_job_status(self.request.id, state=states.STARTED,
+        update_job_status(self, state=states.STARTED,
                           meta={'current': subnet_counter, 'total': len(subnets)},
                           message='Scan of %s result: %s alive, %s new hosts' % (subnet, current_found, current_new))
     # After loop end:
-    update_job_status(self.request.id, state=states.SUCCESS, result=result)
+    update_job_status(self, state=states.SUCCESS, result=result)
 
 
 def discover_one_host(host):
@@ -287,8 +285,8 @@ def celery_discover_vendor(self, subnets):
 
     result += "Discover vendor task has started. Total %s devices<br />\n" % total
     log.warning("Total host to scan: %s" % total)
-    update_job_status(self.request.id, state=states.STARTED, meta={'current': 0, 'total': total},
-                      message=result, result=result)
+    update_job_status(self, state=states.STARTED, meta={'current': 0, 'total': total},
+                      message=result)
 
     for subnet in subnets:
         # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
@@ -302,24 +300,24 @@ def celery_discover_vendor(self, subnets):
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             # start host discovery
             future_to_scan = {executor.submit(discover_one_host, host): host for host in hosts}
+            # waiting for futures
             for future in concurrent.futures.as_completed(future_to_scan):
                 future_result = future_to_scan[future]
                 try:
                     message = future.result()
                     result += message + "<br />\n"
                     host_counter += 1
-                    update_job_status(self.request.id, state=states.STARTED,
-                                      meta={'current': host_counter, 'total': total}, message=message,
-                                      result=result)
+                    update_job_status(self, state=states.STARTED,
+                                      meta={'current': host_counter, 'total': total}, message=message)
                 except Exception as exc:
                     host_counter += 1
                     message = '%r generated an exception: %s' % (future_result, exc)
                     result += message + "<br />\n"
                     log.warning(message)
-                    update_job_status(self.request.id, state=states.STARTED,
-                                      meta={'current': host_counter, 'total': total}, message=message,
-                                      result=result)
+                    update_job_status(self, state=states.STARTED,
+                                      meta={'current': host_counter, 'total': total}, message=message)
                 else:
                     log.info(message)
 
-    update_job_status(self.request.id, state=states.SUCCESS, result=result + '<br />Done.')
+    update_job_status(self, state=states.SUCCESS, result=result + '<br />Done.')
+    return result

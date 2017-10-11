@@ -455,20 +455,25 @@ class GenericEquipment(object):
                 model = self._multiline_search(r'Model: (\S+)', show_version_command_output)
                 sw_version = self._multiline_search(r'(?:)\[(.+)\]', show_version_command_output)
                 self._put_model_and_hostname(model, hostname, sw_version)
+            elif self._multiline_search(r'(Cisco)', show_version_command_output):
+                self.l.info("Cisco device found at IP: %s" % self.ip)
+                found_vendor = 'Cisco'
+                hostname = self._multiline_search(r'(\S+) uptime is .+', show_version_command_output)
+                # If no hostname is found, eg PIX device, but we are pretty sure about cisco device, then we will use
+                # prompt.
+                if hostname is None:
+                    hostname = self.prompt.strip()[:-1]
+                    print("'" + hostname + "'")
+                model = self._multiline_search(r'(.+) \(.+\) processor .+', show_version_command_output)
+                sw_version = self._multiline_search(r'System image file is "(?:flash:|disk2:)\/*(.+)"',
+                                                    show_version_command_output)
+                self._put_model_and_hostname(model, hostname, sw_version)
             elif self._multiline_search(r'(SNR|NAG)', show_version_command_output):
                 self.l.info("SNR device found at IP: %s" % self.ip)
                 found_vendor = 'SNR'
                 hostname = self._multiline_search(r'(\S+)#', show_version_command_output)
                 model = self._multiline_search(r'(\S+) Device', show_version_command_output)
                 sw_version = self._multiline_search(r'SoftWare Version (.+)', show_version_command_output)
-                self._put_model_and_hostname(model, hostname, sw_version)
-            elif self._multiline_search(r'(Cisco)', show_version_command_output):
-                self.l.info("Cisco device found at IP: %s" % self.ip)
-                found_vendor = 'Cisco'
-                hostname = self._multiline_search(r'(\S+) uptime is .+', show_version_command_output)
-                model = self._multiline_search(r'(.+) \(.+\) processor .+', show_version_command_output)
-                sw_version = self._multiline_search(r'System image file is "(?:flash:|disk2:)\/*(.+)"',
-                                                    show_version_command_output)
                 self._put_model_and_hostname(model, hostname, sw_version)
             elif re.search(r'raisecom', show_version_command_output, re.M | re.I):
                 self.l.info("Raisecom device found at IP: %s" % self.ip)

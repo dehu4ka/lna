@@ -232,7 +232,7 @@ class NEList(LoginRequiredMixin, ListView, FormView):
         ip_re = r'^([0-9]+\.){3}[0-9]+$'
         mask_re = r'^([0-9]+\.){3}[0-9]+\/\d{1,2}$'
         # IP / hostname / subnet filtering
-        if ip_or_subnet:
+        if ip_or_subnet and (ip_or_subnet is not None) and (ip_or_subnet != 'None'):
             if re.match(ip_re, ip_or_subnet):  # IP-address only
                 ne_list = ne_list.filter(ne_ip=ip_or_subnet)
             elif re.match(mask_re, ip_or_subnet):  # Subnet

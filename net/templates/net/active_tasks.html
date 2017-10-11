@@ -26,7 +26,7 @@
     {% for job in job_list %}
         <tr id="job_row_{{ job.id }}">
             <td>
-            <button type="button" class="btn btn-secondary" title="Celery ID" data-trigger="focus" data-toggle="popover" data-placement="top" data-content="{{ job.celery_id }}">
+            <button type="button" class="btn btn-secondary" title="Celery ID" data-toggle="popover" data-placement="top" data-content="{{ job.celery_id }}">
                 #
             </button>
             </td>
