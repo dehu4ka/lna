@@ -57,13 +57,20 @@
                   </li>
 
                   <li class="nav-item dropdown">
-                      <a class="nav-link dropdown-toggle" href="#" id="navbarTaskDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Задачи</a>
+                      <a class="nav-link dropdown-toggle" href="#" id="navbarTaskDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Tasks</a>
                       <div class="dropdown-menu" aria-labelledby="navbarTaskDropdown">
                           <a class="dropdown-item {% active_url 'net:pick_ne' %}" href="{% url 'net:pick_ne' %}">Выбор оборудования</a>
                           <a class="dropdown-item {% active_url 'net:active_tasks' %}" href="{% url 'net:active_tasks' %}">Активные задания</a>
                           <a class="dropdown-item {% active_url 'net:discover_subnets' %}" href="{% url 'net:discover_subnets' %}">Обнаружение в подсети</a>
                           <a class="dropdown-item {% active_url 'net:clients_count' %}" href="{% url 'net:clients_count' %}">Подсчёт кол-ва клиентов по узлам</a>
                       </div>
+                  </li>
+
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarTaskDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Settings</a>
+                    <div class="dropdown-menu" aria-labelledby="navbarTaskDropdown">
+                        <a class="dropdown-item {% active_url 'net:subnets_list' %}" href="{% url 'net:subnets_list' %}">Subnets List</a>
+                    </div>
                   </li>
 
                   <li class="nav-item dropdown">

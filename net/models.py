@@ -106,3 +106,9 @@ class EquipmentPorts(models.Model):
     objects = NetManager()
 
 
+class Subnets(models.Model):
+    network = InetAddressField(db_index=True, unique=True)
+    descr = models.CharField(max_length=256, default='')
+    is_active = models.BooleanField(default=True)
+
+    objects = NetManager()

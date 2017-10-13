@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView, FormView, DetailView
 from django.core.exceptions import PermissionDenied
-from net.models import Scripts, Job, Equipment
+from net.models import Scripts, Job, Equipment, Subnets
 from net.forms import TaskForm, ArchiveTasksForm, SubnetForm, NEListForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
@@ -266,3 +266,21 @@ class NEList(LoginRequiredMixin, ListView, FormView):
 class NEDetail(LoginRequiredMixin, DetailView):
     template_name = 'net/ne_detail.html'
     model = Equipment
+
+
+class SubnetsList(LoginRequiredMixin, ListView):
+    template_name = 'net/subnets_list.html'
+    model = Subnets
+
+    def get_queryset(self):
+        subnets_list = Subnets.objects.all()
+
+        return subnets_list
+
+    def get_context_data(self, **kwargs):
+        context = super(SubnetsList, self).get_context_data(**kwargs)
+        context['row_count'] = self.get_queryset().count()
+
+        return context
+
+

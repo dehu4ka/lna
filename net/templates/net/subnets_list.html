@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load staticfiles i18n %}
+
+{% block title %}Subnets list{% endblock %}
+
+{% block content %}
+    <div class="text-sm-left">Use this to create/add/update/delete subnets. These subnets will be used for equipment scanning and discovery</div>
+
+    <div class="container-fluid">
+
+    <table class="table table-striped table-bordered table-hover table-sm">
+    <thead class="thead-inverse">
+    <tr>
+        <th>Subnet</th>
+        <th>Description</th>
+        <th>Active?</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+
+    {% for subnet in subnets_list %}
+        <tr>
+        <td>{{ subnet.network }}</td>
+        <td>{{ subnet.descr }}</td>
+        <td>{% if subnet.is_active %}<i class="fa fa-check text-success"></i>{% else %}<i class="fa fa-times text-danger"></i>{% endif %}</td>
+        <td>
+            <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#subnetModal" data-id="{{ subnet.id }}" data-network="{{ subnet.network }}" data-descr="{{ subnet.descr }}" data-isactive="{{ subnet.is_active }}" data-new="False">
+                <i class="fa fa-pencil fa-fw"></i> Edit
+            </button>
+            <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#deleteSubnetModal">
+                <i class="fa fa-trash-o fa-fw"></i> Delete
+            </button>
+        </td>
+        </tr>
+    {% endfor %}
+
+    </tbody>
+    </table>
+
+        <button class="btn btn-primary" data-toggle="modal" data-target="#subnetModal" data-id="" data-network="" data-descr="" data-isactive="True" data-isnew="True">
+            <i class="fa fa-plus"></i> Add new Subnet
+        </button>
+
+
+    </div>
+{% endblock %}
+
+{% block modal %}
+    <div class="modal fade" id="subnetModal" tabindex="-1" role="dialog" aria-labelledby="subnetModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="subnetModalLabel">New Subnet</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form>
+                {% csrf_token %}
+              <div class="form-group">
+                  <input type="hidden" name="id" id="subnet_id">
+                <label for="subnet" class="form-control-label">Subnet:</label>
+                <input type="text" class="form-control" id="subnet" name="subnet">
+              </div>
+              <div class="form-group">
+                <label for="message-text" class="form-control-label">Subnet Description:</label>
+                <input type="text" class="form-control" id="descr" name="descr">
+              </div>
+                <div class="form-check">
+                    <label class="form-check-label">
+                        <input type="checkbox" class="form-check-input" checked name="is_active" id="is_active"> Active?
+                    </label>
+
+                </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="subnetAddButton">Add/Update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="modal fade" id="deleteSubnetModal" tabindex="-1" role="dialog" aria-labelledby="deleteSubnetModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteSubnetModalLabel">Delete Subnet?</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form>
+                {% csrf_token %}
+                Are you sure to delete <span id="subnetToDel">YOUR</span> subnet?
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" id="subnetDelButton">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+{% endblock %}
+
+{% block javascript %}
+    {{ block.super }}
+    <script>
+    $('#subnetModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget); // button with 'data-' elements
+        var id  = button.data('id');
+        var network  = button.data('network');
+        var descr = button.data('descr');
+        var is_active  = button.data('isactive');
+        var is_new = button.data('isnew');
+
+        var modal = $(this);
+        if (is_new === "True") {
+            modal.find('#subnetModalLabel').text('New Subnet');
+            modal.find('#subnetAddButton').text('Add')
+        } else {
+            modal.find('#subnetModalLabel').text('Edit subnet ' + network);
+            modal.find('#subnetAddButton').text('Update')
+        }
+        modal.find('#subnet').val(network);
+        modal.find('#descr').val(descr);
+        modal.find('#subnet_id').val(id);
+        if (is_active === 'True') {
+            modal.find('#is_active').prop('checked', true);
+        } else {
+            modal.find('#is_active').prop('checked', false);
+        }
+    })
+    </script>
+
+{% endblock %}
