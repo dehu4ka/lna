@@ -64,7 +64,8 @@ def celery_job_starter(destinations_ids, script_id):
 def scan_nets_with_fping(subnets):
     found, new = 0, 0  # Found Alive IP's and created ones
     for subnet in subnets:
-        proc = subprocess.Popen(["/sbin/fping -O 160 -a -q -r 0 -g %s" % subnet], shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(["/usr/bin/sudo /sbin/fping -O 160 -a -q -r 0 -i 1 -g %s" % subnet], shell=True,
+                                stdout=subprocess.PIPE)
         proc.wait()
         out = proc.stdout.read()
         alive_list = out.decode().split('\n')[:-1]  # everything but the last empty

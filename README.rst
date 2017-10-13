@@ -250,3 +250,14 @@ Gunicorn
 
     sudo systemctl start gunicorn
     sudo systemctl enable gunicorn
+
+
+SUDO
+----
+
+We are using sudo to do fping scans with key `-i 1`. This sets interval between ping equals to 1ms. You need to put in your /etc/sudoers something like this:
+
+.. code-block:: bash
+    %wheel  ALL=(ALL)       NOPASSWD: ALL
+
+More docs coming soon...

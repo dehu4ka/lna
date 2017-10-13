@@ -65,7 +65,8 @@ def scan_nets_with_fping_task_version(subnets):
     # test to avoid double import
     found, new = 0, 0  # Found Alive IP's and created ones
     for subnet in subnets:
-        proc = subprocess.Popen(["/sbin/fping -O 160 -a -q -r 0 -g %s" % subnet], shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(["/usr/bin/sudo /sbin/fping -O 160 -i 1 -a -q -r 0 -g %s" % subnet], shell=True,
+                                stdout=subprocess.PIPE)
         proc.wait()
         out = proc.stdout.read()
         alive_list = out.decode().split('\n')[:-1]  # everything but the last empty
@@ -109,7 +110,7 @@ def check_online():
     for ne in ne_objects:
         fping_ips_str += str(ne.ne_ip) + " "
     #  Type of service = 160, only alive, quiet, zero repeat
-    proc = subprocess.Popen(["/sbin/fping -O 160 -a -q -r 0 %s" % fping_ips_str], shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(["/usr/bin/sudo /sbin/fping -O 160 -i 1 -a -q -r 0 %s" % fping_ips_str], shell=True, stdout=subprocess.PIPE)
     proc.wait()
     out = proc.stdout.read()
     alive_list = out.decode().split('\n')[:-1]  # everything but the last empty
@@ -176,7 +177,7 @@ def ping_task(self, destination_ids, **kwargs):
                       message='ping task was started')
     targets = get_destination_ips_list(destination_ids)
     targets = " ".join(targets)  # string with space separated IPs
-    proc = subprocess.Popen(["/sbin/fping %s" % targets], shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(["/usr/bin/sudo /sbin/fping %s" % targets], shell=True, stdout=subprocess.PIPE)
     proc.wait()
     out = b2a(proc.stdout.read())  # convert from binary to ascii
     out = out.replace("\n", "<br>\n")  # some html breaks
