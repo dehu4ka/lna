@@ -60,7 +60,15 @@
 
         {% for ne in ne_list %}
             <tr>
-                <td>{{ ne.hostname }} <a href="{% url 'net:ne_detail' pk=ne.id %}"><i class="fa fa-pencil fa-fw"></i></a></td>
+                <td>
+                    {{ ne.hostname }}
+                    {% if ne.telnet_port_open %}
+                        <i class="fa fa-check-circle text-success" data-toggle="tooltip" data-placement="top" title="Telnet port is open"></i>
+                    {% else %}
+                        <i class="fa fa-times text-danger" data-toggle="tooltip" data-placement="top" title="Telnet port is closed"></i>
+                    {% endif %}
+                    <a href="{% url 'net:ne_detail' pk=ne.id %}"><i class="fa fa-pencil fa-fw" data-toggle="tooltip" data-placement="top" title="Edit"></i></a>
+                </td>
                 <td>{{ ne.ne_ip|slice:":-3" }}</td>
                 <td>{{ ne.vendor }}</td>
                 <td>{{ ne.model }}</td>

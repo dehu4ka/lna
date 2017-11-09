@@ -65,6 +65,7 @@ class Equipment(models.Model):
     ne_ip = InetAddressField(db_index=True, unique=True)
     credentials = models.ForeignKey(Credentials, on_delete=models.CASCADE, null=True)
     sw_version = models.CharField(max_length=512, null=True, default=None)  # software version
+    telnet_port_open = models.BooleanField(default=False)
 
     objects = NetManager()
 

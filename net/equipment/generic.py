@@ -127,22 +127,32 @@ class GenericEquipment(object):
         True if success
         False if fail
         """
+        self.is_connected = False  # by default
         try:
             self.t.open(self.ip, 23, self.timeout)
         except ConnectionRefusedError:
             self.l.warning("Connection to %s is refused!", self.ip)
-            return False
         except socket.timeout:
             self.l.warning("Connection to %s - timeout!", self.ip)
-            return False
         except OSError:
             self.l.info("OS Error, probably host have some firewall turned on, firewall is sending ICMP reject"
                         "and OS Error exception raised.")
-            return False
         else:
             self.l.debug('Connection to %s was successful', self.ip)
             self.is_connected = True
-            return True
+        finally:
+            if self.is_connected:
+                if not self.equipment_object.telnet_port_open:  # if in DB port is closed,
+                    self.equipment_object.telnet_port_open = True  # then set it open
+                    self.equipment_object.save()  # and write changes
+                return True
+            else:  # when we can not connect for some reason
+                if self.equipment_object.telnet_port_open:  # if in DB port is open,
+                    self.equipment_object.telnet_port_open = False  # then set it closed
+                    self.equipment_object.save()  # and write changes
+                return False
+
+
 
     def disconnect(self):
         self.is_connected = False  # pointless ?
