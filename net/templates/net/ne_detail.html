@@ -33,6 +33,10 @@
 {% block javascript %}
     {{ block.super }}
     <script>
+    // tooltip initialization
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip()
+    });
     function do_rediscover(id) {
         $('#rediscover').html('Rediscover<i class="fa fa-refresh fa-spin fa-fw"></i>');
         $.ajax({url: '/api/ne_detail/' + id + '/'}).then(function (data) {
