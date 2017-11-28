@@ -110,5 +110,6 @@ def discover_vendor(subnets):
                 eq.do_login()
                 if eq.discover_vendor():
                     vendor_found_count += 1
+                    eq.get_config()
                 eq.disconnect()
     return login_suggest_success_count, vendor_found_count

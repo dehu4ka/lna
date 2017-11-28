@@ -249,6 +249,7 @@ def discover_one_host(host):
         vendor = eq.discover_vendor()
         if vendor:
             message_from_celery += " Vendor was found: %s" % vendor
+            eq.get_config()
         eq.disconnect()
     return message_from_celery
 

@@ -1,4 +1,4 @@
-from net.models import Equipment, Credentials, EquipmentSuggestCredentials
+from net.models import Equipment, Credentials, EquipmentSuggestCredentials, EquipmentConfig
 from telnetlib import Telnet
 import logging
 import re
@@ -77,11 +77,9 @@ class GenericEquipment(object):
         self.ip = str(equipment_object.ne_ip.ip)
         self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
         self.l.debug('Equipment object was created, IP: %s', self.ip)
-        self.timeout = 3  # telnet timeout in seconds
         self.t = Telnet()
         self.is_connected = False
         self.prompt = ''  # приглашение командной строки
-        self.config = None  # забранный конфиг
         self.pager = self.init_pager()
         self.is_logged = False  # удалось ли авторизоваться
         self.in_configure_mode = False
@@ -129,7 +127,7 @@ class GenericEquipment(object):
         """
         self.is_connected = False  # by default
         try:
-            self.t.open(self.ip, 23, self.timeout)
+            self.t.open(self.ip, 23, self.io_timeout)
         except ConnectionRefusedError:
             self.l.warning("Connection to %s is refused!", self.ip)
         except socket.timeout:
@@ -286,13 +284,17 @@ class GenericEquipment(object):
         expect_list.append(re_with_prompt)  # If we have in our expect list both shell prompt and more prompt,
         #  we should not wait too long
         while True:
-            out = self.t.expect(self.pager, self.io_timeout)
+            out = self.t.expect(self.pager, timeout=self.io_timeout)
             output += b2a(out[2])
             if out[0] == -1:
+                self.l.debug('Got IO Timeout')
                 break
-            x = re.compile(a2b(self.prompt))
-            if out[1].re != x:
+            if out[1].re != re_with_prompt:  # out[1] is re match object. out[1].re is matched regular expression
+                self.l.debug('sending SPACE')
                 self.t.write(a2b(' '))  # sending SPACE to get next page
+            elif out[1].re == re_with_prompt:
+                self.l.debug('Got prompt, command execution complete.')
+                break
         return output
 
     def _print_recv(self, input_string):
@@ -555,3 +557,29 @@ class GenericEquipment(object):
             self.equipment_object.save()
             return found_vendor
         return False
+
+    def get_config(self):
+        self.l.debug('Trying to get config from NE')
+        if self.equipment_object.vendor == 'Cisco':
+            self.exec_cmd('terminal length 0')  # disable pager
+            self.io_timeout = 30  # must be enough to most cases. Some CPU overloaded devices are really slow
+            current_config = self.exec_cmd('show run')
+            self.io_timeout = 1  # reverting timeout
+
+            if self.equipment_object.current_config == current_config:  # Checking if no changes was since last check:
+                self.l.debug('Configuration has not changed')
+                return True
+
+            self.l.debug('Writing config to DB')
+            self.equipment_object.current_config = current_config
+            self.equipment_object.save()
+
+            # Creating archive configuration
+            self.l.debug("Writing to config archive DB")
+            eq_conf_object = EquipmentConfig(equipment_id=self.equipment_object, config=current_config)
+            eq_conf_object.save()
+            # self.l.debug(out)
+            return True
+        else:
+            self.l.warning("Can not get config from unknown vendor!")
+            return False

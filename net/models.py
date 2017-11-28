@@ -66,6 +66,7 @@ class Equipment(models.Model):
     credentials = models.ForeignKey(Credentials, on_delete=models.CASCADE, null=True)
     sw_version = models.CharField(max_length=512, null=True, default=None)  # software version
     telnet_port_open = models.BooleanField(default=False)
+    current_config = models.TextField()
 
     objects = NetManager()
 
@@ -85,11 +86,11 @@ class EquipmentSuggestCredentials(models.Model):
 
 class EquipmentConfig(models.Model):
     equipment_id = models.ForeignKey(Equipment, on_delete=models.CASCADE, null=True)  # Equipment foreign key
-    save_date = models.DateTimeField(auto_now_add=True)
-    config = models.TextField()
+    updated = models.DateTimeField(auto_now_add=True)  # when config was updated
+    config = models.TextField()  # subj
 
     class Meta:
-        ordering = ('-save_date', )
+        ordering = ('-updated', )
 
 
 class EquipmentPorts(models.Model):
