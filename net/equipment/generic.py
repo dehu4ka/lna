@@ -112,6 +112,7 @@ class GenericEquipment(object):
         pagers.append(re.compile(b'---\(more.+\)---'))
         pagers.append(re.compile(b' --More-- '))
         pagers.append(re.compile(b'  ---- More ----'))
+        pagers.append(re.compile(b'All: a, More: <space>, One line: <return>, Quit: q or <ctrl>\+z'))
         # pagers.append(re.compile(b'return user view with Ctrl\+Z'))
         return pagers
 
@@ -515,6 +516,7 @@ class GenericEquipment(object):
                     self._put_model_and_hostname(model, hostname)
             if not found_vendor:
                 # Eltex guessing
+                # self.exec_cmd('terminal datadump')
                 show_version_command_output = self.exec_cmd('show system')
                 if self._multiline_search(r'(System Description)', show_version_command_output):
                     self.l.info("Eltex device found at IP: %s" % self.ip)
@@ -558,27 +560,45 @@ class GenericEquipment(object):
             return found_vendor
         return False
 
+    def _get_config_with(self, cmd):
+        self.io_timeout = 30  # must be enough to most cases. Some CPU overloaded devices are really slow
+        current_config = self.exec_cmd(cmd)
+        self.io_timeout = 1  # reverting timeout
+
+        if self.equipment_object.current_config == current_config:  # Checking if no changes was since last check:
+            self.l.debug('Configuration has not changed')
+            return True
+
+        self.l.debug('Writing config to DB')
+        self.equipment_object.current_config = current_config
+        self.equipment_object.save()
+
+        # Creating archive configuration
+        self.l.debug("Writing to config archive DB")
+        eq_conf_object = EquipmentConfig(equipment_id=self.equipment_object, config=current_config)
+        eq_conf_object.save()
+        # self.l.debug(out)
+        return current_config
+
     def get_config(self):
         self.l.debug('Trying to get config from NE')
-        if self.equipment_object.vendor == 'Cisco':
+        if self.equipment_object.vendor == 'Cisco' or self.equipment_object.vendor == 'SNR':
             self.exec_cmd('terminal length 0')  # disable pager
-            self.io_timeout = 30  # must be enough to most cases. Some CPU overloaded devices are really slow
-            current_config = self.exec_cmd('show run')
-            self.io_timeout = 1  # reverting timeout
-
-            if self.equipment_object.current_config == current_config:  # Checking if no changes was since last check:
-                self.l.debug('Configuration has not changed')
-                return True
-
-            self.l.debug('Writing config to DB')
-            self.equipment_object.current_config = current_config
-            self.equipment_object.save()
-
-            # Creating archive configuration
-            self.l.debug("Writing to config archive DB")
-            eq_conf_object = EquipmentConfig(equipment_id=self.equipment_object, config=current_config)
-            eq_conf_object.save()
-            # self.l.debug(out)
+            self._get_config_with('show run')
+            return True
+        elif self.equipment_object.vendor == 'Juniper':
+            self._get_config_with('show configuration | no-more')
+            return True
+        elif self.equipment_object.vendor == 'Huawei':
+            self.exec_cmd('screen-width 500')
+            self.exec_cmd('y')
+            self.exec_cmd('screen-length 0 temporary')
+            self._get_config_with('display current-configuration')
+            return True
+        elif self.equipment_object.vendor == 'Eltex':
+            self.exec_cmd('terminal datadump')
+            self.exec_cmd('')
+            self._get_config_with('show run')
             return True
         else:
             self.l.warning("Can not get config from unknown vendor!")
