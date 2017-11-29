@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from argus.models import ASTU
 from rest_framework import viewsets, status
 from api.serializers import NESerializer, ListVendorsSerializer, ListModelsSerializer, JobModelSerializer, \
-    NEDetailsSerializer
-from net.models import Job, Equipment
+    NEDetailsSerializer, ArchiveConfigSerializer
+from net.models import Job, Equipment, EquipmentConfig
 from lna.taskapp.celery_app import app
 from rest_framework.views import APIView
 from net.lib import discover_vendor
@@ -69,3 +69,16 @@ class NEDetail(APIView):
 
         serializer = NEDetailsSerializer(equipment)
         return Response(serializer.data)
+
+
+class ArchiveConfig(APIView):
+    def get_object(self, pk):
+        try:
+            return EquipmentConfig.objects.get(pk=pk)
+        except EquipmentConfig.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, *args, **kwargs):
+        config = self.get_object(pk)
+        config_serializer = ArchiveConfigSerializer(config)
+        return Response(config_serializer.data)

@@ -1,6 +1,6 @@
 from django.conf.urls import include, url
 from rest_framework import routers
-from api.views import NEViewSet, ListVendors, ListModels, ListTasks, NEDetail
+from api.views import NEViewSet, ListVendors, ListModels, ListTasks, NEDetail, ArchiveConfig
 
 router = routers.DefaultRouter()
 router.register(r'ne_list', NEViewSet, 'ne_list')
@@ -13,6 +13,7 @@ router.register(r'tasks', ListTasks, 'tasks')
 urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls')),
     url(r'ne_detail/(?P<pk>[0-9]+)/$', NEDetail.as_view()),
+    url(r'get_archived_config/(?P<pk>[0-9]+)/$', ArchiveConfig.as_view()),
     url(r'^', include(router.urls))
 
 ]

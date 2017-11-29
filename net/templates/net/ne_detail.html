@@ -24,9 +24,47 @@
         <tr><td>Ports</td><td><a class="btn btn-outline-primary btn-sm" data-toggle="collapse" href="#ports" aria-expanded="false" aria-controls="ports">Show</a>
             <div class="collapse" id="ports">ports</div>
         </td></tr>
-        <tr><td>Config</td><td><a class="btn btn-outline-primary btn-sm" data-toggle="collapse" href="#conf" aria-expanded="false" aria-controls="conf">Show</a>
-            <div class="collapse" id="conf">{{ object.current_config | markdown:object.vendor | safe}}</div>
-        </td></tr>
+        <tr>
+            <td>Config</td>
+            <td>
+                <a class="btn btn-outline-primary btn-sm" data-toggle="collapse" href="#conf" aria-expanded="false" aria-controls="conf">Show</a>
+                <div class="collapse" id="conf">{{ object.current_config | markdown:object.vendor | safe}}</div>
+            </td>
+        </tr>
+        <tr>
+            <td>Config History</td>
+            <td>
+                <a class="btn btn-outline-primary btn-sm" data-toggle="collapse" href="#archive" aria-expanded="false" aria-controls="archive">Show</a>
+                <div class="collapse" id="archive">
+                <form method="post">
+                    <div class="form-group">
+                        <label class="col-sm-3 col-form-label" for="archive_date">Updated at</label>
+                        <select name="archive_date" class="custom-select" id="archive_date">
+                            {% for config in config_archives %}
+                                <option value="{{ config.id }}">{{ config.updated|date:"d M Y H:i:s" }}</option>
+                            {% endfor %}
+                        </select>
+                    <button class="btn btn-danger" type="button" id="show_archived_config">Show</button>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-3 col-form-label" for="compare_archive_date1">Compare two configs</label>
+                        <select name="compare_archive_date1" class="custom-select" id="compare_archive_date1">
+                            {% for config in config_archives %}
+                                <option value="{{ config.id }}">{{ config.updated|date:"d M Y H:i:s" }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="compare_archive_date2" class="custom-select" id="compare_archive_date2">
+                            {% for config in config_archives %}
+                                <option value="{{ config.id }}">{{ config.updated|date:"d M Y H:i:s" }}</option>
+                            {% endfor %}
+                        </select>
+                    <button class="btn btn-danger" type="button" id="compare_archived_config">Compare</button>
+                    </div>
+                </form>
+                <div id="archive_config"></div>
+                </div>
+            </td>
+        </tr>
     </table>
     <button class="btn btn-danger" type="button" id="rediscover">Rediscover</button>
 {% endblock %}
@@ -34,10 +72,13 @@
 {% block javascript %}
     {{ block.super }}
     <script>
+
     // tooltip initialization
     $(function () {
       $('[data-toggle="tooltip"]').tooltip()
     });
+
+    // Ajax for rediscover process
     function do_rediscover(id) {
         $('#rediscover').html('Rediscover<i class="fa fa-refresh fa-spin fa-fw"></i>');
         $.ajax({url: '/api/ne_detail/' + id + '/'}).then(function (data) {
@@ -52,8 +93,29 @@
             $('#rediscover').html('Rediscover');
         });
     }
+
+    // Rediscover button action
     $('#rediscover').click(function () {
         do_rediscover('{{ object.id }}')
+    });
+
+    // Ajax to get archived config from DB
+    function get_archived_config(archived_config_id) {
+        $('#show_archived_config').html('Show<i class="fa fa-refresh fa-spin fa-fw"></i>');
+        $.ajax({url: '/api/get_archived_config/' + archived_config_id + '/'}).then(function (data) {
+            var config = data.colored_config;
+            $('#archive_config').html(config);
+        });
+
+        $('#show_archived_config').html('Show');
+    }
+
+    // Show archived config button action
+    $('#show_archived_config').click(function () {
+        var archived_config_id = $('#archive_date').val();
+        // console.log('archived_config_id = ' + archived_config_id);
+        get_archived_config(archived_config_id)
     })
+
     </script>
 {% endblock %}

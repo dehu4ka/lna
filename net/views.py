@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView, FormView, DetailView
 from django.core.exceptions import PermissionDenied
-from net.models import Scripts, Job, Equipment, Subnets
+from net.models import Scripts, Job, Equipment, Subnets, EquipmentConfig
 from net.forms import TaskForm, ArchiveTasksForm, SubnetForm, NEListForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
@@ -276,6 +276,10 @@ class NEDetail(LoginRequiredMixin, DetailView):
         except ASTU.DoesNotExist:
             address = 'Not found'
         context['address'] = address  # return it to the context
+
+        config_archives = EquipmentConfig.objects.filter(equipment_id=context['object'].id)
+        context['config_archives'] = config_archives[:20]  # Last 20 configurations
+
         return context
 
 

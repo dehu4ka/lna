@@ -1,8 +1,9 @@
-from rest_framework.relations import PrimaryKeyRelatedField
-
+from rest_framework.fields import SerializerMethodField
 from argus.models import ASTU
 from rest_framework import serializers
-from net.models import Job, Equipment
+from net.models import Job, Equipment, EquipmentConfig
+from net.lib import HighlightRenderer
+from mistune import Markdown
 
 
 class NESerializer(serializers.HyperlinkedModelSerializer):
@@ -39,3 +40,17 @@ class NEDetailsSerializer(serializers.ModelSerializer):
         model = Equipment
         fields = ('id', 'hostname', 'vendor', 'model', 'ne_ip', 'credentials_id', 'sw_version', 'login', 'passw',
                   'current_config')
+
+
+class ArchiveConfigSerializer(serializers.ModelSerializer):
+    colored_config = SerializerMethodField()
+
+    class Meta:
+        model = EquipmentConfig
+        fields = ('colored_config', )
+
+    def get_colored_config(self, obj):
+        config = '```pre\n' + obj.config + '\n```'
+        renderer = HighlightRenderer()
+        markdown = Markdown(renderer=renderer)
+        return markdown.render(config)

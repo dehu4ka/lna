@@ -89,6 +89,10 @@ class EquipmentConfig(models.Model):
     updated = models.DateTimeField(auto_now_add=True)  # when config was updated
     config = models.TextField()  # subj
 
+    def __str__(self):
+        return "EquipmentConfig object with equipment_id = %s, updated at %s. Object is %s\n" % \
+               (self.equipment_id_id, self.updated, self.equipment_id)
+
     class Meta:
         ordering = ('-updated', )
 
