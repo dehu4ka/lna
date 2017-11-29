@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User, Group
 from django.http import Http404
 from rest_framework.response import Response
 from argus.models import ASTU
@@ -8,8 +7,13 @@ from api.serializers import NESerializer, ListVendorsSerializer, ListModelsSeria
 from net.models import Job, Equipment, EquipmentConfig
 from lna.taskapp.celery_app import app
 from rest_framework.views import APIView
-from net.lib import discover_vendor
 from net.equipment.generic import GenericEquipment
+from difflib import unified_diff
+from mistune import Markdown
+from pygments import highlight
+from pygments.lexers.diff import DiffLexer
+from pygments.formatters import HtmlFormatter
+
 
 
 class NEViewSet(viewsets.ModelViewSet):
@@ -82,3 +86,26 @@ class ArchiveConfig(APIView):
         config = self.get_object(pk)
         config_serializer = ArchiveConfigSerializer(config)
         return Response(config_serializer.data)
+
+
+class ConfigDiff(ArchiveConfig):
+    def get(self, request, pk, pk2, *args, **kwargs):
+        first_config = self.get_object(pk=pk).config.splitlines(keepends=True)
+        second_config = self.get_object(pk=pk2).config.splitlines(keepends=True)
+        first_date = self.get_object(pk=pk).updated.strftime('%d %b %Y %H:%M:%S')
+        second_date = self.get_object(pk=pk2).updated.strftime('%d %b %Y %H:%M:%S')
+
+        diff = unified_diff(first_config, second_config, fromfile=first_date, tofile=second_date)
+        diff = list(diff)  # list
+        diff = ''.join(diff)
+        # diff = '<pre><code>' + diff + '</code></pre>'
+
+        lexer = DiffLexer()
+        formatter = HtmlFormatter()
+        colored_diff = highlight(diff, lexer, formatter)
+
+        answer = {
+            'diff': colored_diff,
+        }
+
+        return Response(answer)

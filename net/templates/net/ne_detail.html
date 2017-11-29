@@ -106,7 +106,6 @@
             var config = data.colored_config;
             $('#archive_config').html(config);
         });
-
         $('#show_archived_config').html('Show');
     }
 
@@ -115,6 +114,23 @@
         var archived_config_id = $('#archive_date').val();
         // console.log('archived_config_id = ' + archived_config_id);
         get_archived_config(archived_config_id)
+    });
+
+    // Ajax to get two config diff
+    function get_config_diff(first_config_id, second_config_id) {
+        $('#show_archived_config').html('Show<i class="fa fa-refresh fa-spin fa-fw"></i>');
+        $.ajax({url: '/api/get_config_diff/' + first_config_id + '/' + second_config_id + '/'}).then(function (data) {
+            var diff = data.diff;
+            $('#archive_config').html(diff);
+        });
+        $('#show_archived_config').html('Show');
+    }
+
+    // Show diff between config button action
+    $('#compare_archived_config').click(function () {
+        var first_config_id = $('#compare_archive_date1').val();
+        var second_config_id = $('#compare_archive_date2').val();
+        get_config_diff(first_config_id, second_config_id);
     })
 
     </script>
