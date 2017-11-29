@@ -267,6 +267,17 @@ class NEDetail(LoginRequiredMixin, DetailView):
     template_name = 'net/ne_detail.html'
     model = Equipment
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        ip = str(context['object'].ne_ip).replace('/32', '')  # removing /32 from IPv4 addr
+        try:
+            astu_object = ASTU.objects.get(ne_ip=ip)  # check if NE with this IP exists in ASTU table
+            address = astu_object.address  # getting address
+        except ASTU.DoesNotExist:
+            address = 'Not found'
+        context['address'] = address  # return it to the context
+        return context
+
 
 class SubnetsList(LoginRequiredMixin, ListView):
     template_name = 'net/subnets_list.html'

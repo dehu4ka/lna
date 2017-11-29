@@ -64,7 +64,8 @@ class NEDetail(APIView):
             # Trying to login only if login guessing was successful
             generic_equipment.do_login()
             if generic_equipment.discover_vendor():
-                generic_equipment.disconnect()
+                generic_equipment.get_config()
+            generic_equipment.disconnect()
 
         serializer = NEDetailsSerializer(equipment)
         return Response(serializer.data)

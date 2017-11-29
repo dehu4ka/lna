@@ -34,6 +34,8 @@ class JobModelSerializer(serializers.HyperlinkedModelSerializer):
 class NEDetailsSerializer(serializers.ModelSerializer):
     login = serializers.CharField(source='credentials.login')
     passw = serializers.CharField(source='credentials.passw')
+
     class Meta:
         model = Equipment
-        fields = ('id', 'hostname', 'vendor', 'model', 'ne_ip', 'credentials_id', 'sw_version', 'login', 'passw')
+        fields = ('id', 'hostname', 'vendor', 'model', 'ne_ip', 'credentials_id', 'sw_version', 'login', 'passw',
+                  'current_config')

@@ -13,6 +13,7 @@
             {% endif %}
         </td></tr>
         <tr><td>IP</td><td id="ne_ip">{{ object.ne_ip }}</td></tr>
+        <tr><td>Location</td><td id="ne_ip">{{ address }}</td></tr>
         <tr><td>Vendor</td><td id="vendor">{{ object.vendor }}</td></tr>
         <tr><td>Model</td><td id="model">{{ object.model }}</td></tr>
         <tr><td>Software version</td><td id="sw_version">{{ object.sw_version }}</td></tr>
@@ -46,6 +47,8 @@
             $('#sw_version').html(data.sw_version);
             $('#login').html(data.login);
             $('#passw').html(data.passw);
+            var conf = '<pre><code>' + data.current_config + '</code></pre>';  // without coloring
+            $('#conf').html(conf);
             $('#rediscover').html('Rediscover');
         });
     }
