@@ -14,7 +14,7 @@
 .highlight .p { color: #ffffff } /* Punctuation */
 .highlight .ch { color: #008800; font-style: italic; background-color: #0f140f } /* Comment.Hashbang */
 .highlight .cm { color: #008800; font-style: italic; background-color: #0f140f } /* Comment.Multiline */
-.highlight .cp { color: #ff0007; font-weight: bold; font-style: italic; background-color: #0f140f } /* Comment.Preproc */
+.highlight .cp { color: #ff0007; font-weight: bold; font-style: italic; background-color: #201D1D } /* Comment.Preproc */
 .highlight .cpf { color: #008800; font-style: italic; background-color: #0f140f } /* Comment.PreprocFile */
 .highlight .c1 { color: #008800; font-style: italic; background-color: #0f140f } /* Comment.Single */
 .highlight .cs { color: #008800; font-style: italic; background-color: #0f140f } /* Comment.Special */

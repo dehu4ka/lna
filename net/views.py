@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView, FormView, DetailView
 from django.core.exceptions import PermissionDenied
 from net.models import Scripts, Job, Equipment, Subnets, EquipmentConfig
-from net.forms import TaskForm, ArchiveTasksForm, SubnetForm, NEListForm
+from net.forms import TaskForm, ArchiveTasksForm, SubnetForm, NEListForm, ConfigSearchForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
 from net.lib import celery_job_starter, scan_nets_with_fping, discover_vendor
@@ -299,4 +299,44 @@ class SubnetsList(LoginRequiredMixin, ListView):
 
         return context
 
+
+class ConfigSearch(LoginRequiredMixin, ListView, FormView):
+    template_name = 'net/config_search.html'
+    form_class = ConfigSearchForm
+    model = Equipment
+    success_url = 'net/config_search'
+    paginate_by = 20
+    context_object_name = 'ne_list'
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_search_term(self):
+        """
+        Returns search term from form if method is post, otherwise returns None
+
+        :return: search term or None
+        """
+        if self.request.method == 'POST':
+            form = ConfigSearchForm(self.request.POST)
+            if form.is_valid():
+                search = form.cleaned_data['search']
+                return search
+        if self.request.method == 'GET':
+            return self.request.GET.get('search')
+        return None
+
+    def get_queryset(self):
+        ne_list = Equipment.objects.all()  # all NE's
+        search = self.get_search_term()
+        if search:
+            ne_list = ne_list.filter(current_config__icontains=search)
+            return ne_list
+        return Equipment.objects.none()  # otherwise return empty queryset / list
+
+    def get_context_data(self, **kwargs):
+        context = super(ConfigSearch, self).get_context_data(**kwargs)
+        context['row_count'] = self.get_queryset().count()
+        context['search'] = self.get_search_term()
+        return context
 

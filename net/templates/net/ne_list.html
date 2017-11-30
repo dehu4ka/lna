@@ -4,7 +4,7 @@
 {% block title %}Discovered NE List{% endblock %}
 
 {% block content %}
-    <h1 xmlns="http://www.w3.org/1999/html">Discovered NE List</h1>
+    <h1>Discovered NE List</h1>
     <form method="post" class="form-inline">
         {% csrf_token %}
         <input type="hidden" name="login_discovered_from_server" value="{{ is_login_discovered }}" id="login_discovered_from_server">

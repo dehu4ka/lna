@@ -54,3 +54,10 @@ class NEListForm(forms.Form):
 
     is_vendor_discovered = forms.CharField(widget=forms.RadioSelect(choices=VENDOR_CHOICES), required=False)
 
+
+class ConfigSearchForm(forms.Form):
+    search = forms.CharField(max_length=64, required=True, min_length=3)  # min 3 char for search
+    search.widget.attrs = {
+        'placeholder': 'Search term',
+        'class': 'form-control',
+    }

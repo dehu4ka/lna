@@ -1,6 +1,6 @@
 from django.conf.urls import include, url
 from net.views import Demo, PickNE, DoTask, ActiveTasks, ArchiveTasks, TaskDetail, DiscoverSubnets, ClientsCount, \
-    NEList, NEDetail, SubnetsList
+    NEList, NEDetail, SubnetsList, ConfigSearch
 
 urlpatterns = [
     url(r'^demo$', Demo.as_view(), name='demo'),
@@ -13,5 +13,6 @@ urlpatterns = [
     url(r'^clients_count$', ClientsCount.as_view(), name='clients_count'),
     url(r'^ne_list', NEList.as_view(), name='ne_list'),
     url(r'^ne_detail/(?P<pk>[0-9]+)/$', NEDetail.as_view(), name='ne_detail'),
-    url(r'subnets', SubnetsList.as_view(), name='subnets_list')
+    url(r'subnets', SubnetsList.as_view(), name='subnets_list'),
+    url(r'config_search', ConfigSearch.as_view(), name='config_search'),
 ]

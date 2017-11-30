@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load staticfiles i18n %}{% load net.tags %}
+
+{% block title %}Config Search{% endblock %}
+
+{% block content %}
+    <h1>Search string in actual NE configs</h1>
+    <form method="post" action="/net/config_search">
+    {% csrf_token %}
+        <div class="form-group mx-sm-3 m-1">
+            <label for="id_search">Search:</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Search term" class="form-control" required id="id_search" />
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+
+    </form>
+
+    {% if row_count %}
+    <p>Найдено: {{ row_count }}.</p>
+    {% endif %}
+
+    {% if ne_list %}
+        </div>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-auto">Hostname</div>
+                <div class="col">IP</div>
+                <div class="col">Vendor</div>
+                <div class="col">Model</div>
+                <div class="col-6">Config</div>
+            </div>
+        {% for ne in ne_list %}
+            <div class="row">
+            <div class="col-md-auto">
+                {{ ne.hostname }}
+                <a href="{% url 'net:ne_detail' pk=ne.id %}"><i class="fa fa-pencil fa-fw" data-toggle="tooltip" data-placement="top" title="Edit"></i></a>
+            </div>
+            <div class="col">{{ ne.ne_ip|slice:":-3"|cut:"/32" }}</div>
+            <div class="col">{{ ne.vendor }}</div>
+            <div class="col">{{ ne.model }}</div>
+            <div class="col-6">{{ ne.current_config|config_search:search }}</div>
+            </div>
+        {% empty %}
+            <p>Не найдено</p>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if is_paginated %}
+        <nav>
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a href="?page={{ page_obj.previous_page_number }}&search={{ search }}" class="page-link">&laquo;</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+            {% for i in paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <li class="active page-item"><span class="page-link">{{ i }} <span class="sr-only">(current)</span></span></li>
+                {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                    <li class="page-item"><a href="?page={{ i }}&search={{ search }}" class="page-link">{{ i }}</a></li>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+                <li class="page-item"><a href="?page={{ page_obj.next_page_number }}&search={{ search }}" class="page-link">&raquo;</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            {% endif %}
+        </ul>
+        </nav>
+    {% endif %}
+
+{% endblock %}
