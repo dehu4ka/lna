@@ -290,11 +290,12 @@ def celery_discover_vendor(self, subnets):
 
     for subnet in subnets:
         # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
-        if subnet.find("/") == -1:
-            # one host
-            hosts = Equipment.objects.filter(ne_ip=subnet)
-            total += 1  # assuming that IP address is unique field in DB
-        else:
+        try:
+            if subnet.find("/") == -1:
+                # one host
+                hosts = Equipment.objects.filter(ne_ip=subnet)
+                total += 1  # assuming that IP address is unique field in DB
+        except AttributeError:
             # subnet
             hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
             total += hosts.count()
@@ -306,10 +307,11 @@ def celery_discover_vendor(self, subnets):
 
     for subnet in subnets:
         # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
-        if subnet.find("/") == -1:
-            # one host
-            hosts = Equipment.objects.filter(ne_ip=subnet)
-        else:
+        try:
+            if subnet.find("/") == -1:
+                # one host
+                hosts = Equipment.objects.filter(ne_ip=subnet)
+        except AttributeError:
             # subnet
             hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
 
