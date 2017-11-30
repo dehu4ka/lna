@@ -113,6 +113,7 @@ class GenericEquipment(object):
         pagers.append(re.compile(b' --More-- '))
         pagers.append(re.compile(b'  ---- More ----'))
         pagers.append(re.compile(b'All: a, More: <space>, One line: <return>, Quit: q or <ctrl>\+z'))
+        pagers.append(re.compile(b"press 'e' to exit showall, 'n' for nopause, or any key to continue\.\.\."))
         # pagers.append(re.compile(b'return user view with Ctrl\+Z'))
         return pagers
 
@@ -513,7 +514,8 @@ class GenericEquipment(object):
                     found_vendor = 'Zyxel'
                     hostname = self._multiline_search(r'Hostname: (\S+)', show_version_command_output)
                     model = self._multiline_search(r'Model: (\S+)', show_version_command_output)
-                    self._put_model_and_hostname(model, hostname)
+                    sw_version = self._multiline_search(r'ZyNOS version: (.+)', show_version_command_output)
+                    self._put_model_and_hostname(model, hostname, sw_version)
             if not found_vendor:
                 # Eltex guessing
                 # self.exec_cmd('terminal datadump')
@@ -560,8 +562,9 @@ class GenericEquipment(object):
             return found_vendor
         return False
 
-    def _get_config_with(self, cmd):
-        self.io_timeout = 30  # must be enough to most cases. Some CPU overloaded devices are really slow
+    def _get_config_with(self, cmd, timeout=30):
+        # default 30 sec must be enough to most cases. Some CPU overloaded devices are really slow
+        self.io_timeout = timeout
         current_config = self.exec_cmd(cmd)
         self.io_timeout = 1  # reverting timeout
 
@@ -600,6 +603,10 @@ class GenericEquipment(object):
             self.exec_cmd('')
             self._get_config_with('show run')
             return True
+        elif self.equipment_object.vendor == 'Alcatel':
+            self._get_config_with('info configure flat | no-more', timeout=300)  # very long configuration retrieving
+        elif self.equipment_object.vendor == 'Zyxel':
+            self._get_config_with('config show all')
         else:
             self.l.warning("Can not get config from unknown vendor!")
             return False
