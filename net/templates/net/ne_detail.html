@@ -12,7 +12,7 @@
                 <i class="fa fa-times text-danger" data-toggle="tooltip" data-placement="top" title="Telnet port is closed"></i>
             {% endif %}
         </td></tr>
-        <tr><td>IP</td><td id="ne_ip">{{ object.ne_ip }}</td></tr>
+        <tr><td>IP</td><td id="ne_ip">{{ object.ne_ip|slice:":-3"|cut:"/32" }}</td></tr>
         <tr><td>Location</td><td id="ne_ip">{{ address }}</td></tr>
         <tr><td>Vendor</td><td id="vendor">{{ object.vendor }}</td></tr>
         <tr><td>Model</td><td id="model">{{ object.model }}</td></tr>
