@@ -11,7 +11,7 @@ from django.utils import timezone
 from lna.taskapp.celery_app import app
 from net.equipment.generic import b2a, GenericEquipment
 from argus.models import ASTU
-from net.models import Job, JobResult, Equipment
+from net.models import Job, JobResult, Equipment, Subnets
 import concurrent.futures
 import multiprocessing
 
@@ -209,6 +209,12 @@ def celery_scan_nets_with_fping(self, subnets=('',)):
     :return: None
     """
     log.warning("celery task in celery_scan_nets_with_fping")
+    # task called without arguments | tuple or list or None
+    if subnets == ('', ) or subnets == ['', ] or subnets is None:
+        subnets_objects = Subnets.objects.all()
+        log.info('Task called without parameters, getting subnets from DB')
+        subnets = [s.network for s in subnets_objects]
+
     update_job_status(self, state=states.STARTED, meta={'current': 0, 'total': len(subnets)},
                       message='ping task was started')
     found, new, subnet_counter, result = 0, 0, 0, ''  # counters of alive hosts and loop below counter
@@ -266,6 +272,13 @@ def celery_discover_vendor(self, subnets):
     :return: None
 
     """
+
+    # task called without arguments | tuple or list or None
+    if subnets == ('',) or subnets == ['', ] or subnets is None:
+        subnets_objects = Subnets.objects.all()
+        log.info('Task called without parameters, getting subnets from DB')
+        subnets = [s.network for s in subnets_objects]
+
     login_suggest_success_count = 0
     vendor_found_count = 0
     log.warning("Celery task in celery_discover_vendor")
@@ -274,6 +287,7 @@ def celery_discover_vendor(self, subnets):
 
     # First, we need to count NE total
     total, host_counter = 0, 0  # total host to discover, completed host counter
+
     for subnet in subnets:
         # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
         if subnet.find("/") == -1:

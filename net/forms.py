@@ -14,7 +14,7 @@ class ArchiveTasksForm(forms.Form):
 
 
 class SubnetForm(forms.Form):
-    subnets = forms.CharField(widget=forms.Textarea, required=True, label='')
+    subnets = forms.CharField(widget=forms.Textarea, required=False, label='')
     discover_task_choices = (('fping', 'Discover with FPING'), ('vendor', 'Discover Vendor and models'))
     subnets.widget.attrs = {
         'placeholder': "Enter the networks to scan with fping in CIDR format\n3 x /24 is OK.\n"

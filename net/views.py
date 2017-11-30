@@ -127,6 +127,7 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
             form = SubnetForm(self.request.POST)
             if form.is_valid():
                 subnets = form.cleaned_data['subnets'].split("\r\n")  # lists with subnet
+                print(subnets)
                 cast_to_celery = form.cleaned_data['cast_to_celery']  # "Send discovery task to Celery" checkbox
                 discover_task = form.cleaned_data['discover_task']  # Task type
                 context['cast_to_celery'] = cast_to_celery
