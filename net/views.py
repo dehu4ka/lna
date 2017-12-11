@@ -320,11 +320,10 @@ class ConfigSearch(LoginRequiredMixin, ListView, FormView):
         if self.request.method == 'POST':
             form = ConfigSearchForm(self.request.POST)
             if form.is_valid():
-                search = form.cleaned_data['search']
+                search = form.cleaned_data['search'] or ''
                 return search
         if self.request.method == 'GET':
-            return self.request.GET.get('search')
-        return None
+            return self.request.GET.get('search') or ''
 
     def get_queryset(self):
         ne_list = Equipment.objects.all()  # all NE's
