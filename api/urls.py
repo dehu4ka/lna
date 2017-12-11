@@ -1,6 +1,6 @@
 from django.conf.urls import include, url
 from rest_framework import routers
-from api.views import NEViewSet, ListVendors, ListModels, ListTasks, NEDetail, ArchiveConfig, ConfigDiff
+from api.views import NEViewSet, ListVendors, ListModels, ListTasks, NEDetail, ArchiveConfig, ConfigDiff, IsPPPoEIAConfigured
 
 router = routers.DefaultRouter()
 router.register(r'ne_list', NEViewSet, 'ne_list')
@@ -15,6 +15,7 @@ urlpatterns = [
     url(r'ne_detail/(?P<pk>[0-9]+)/$', NEDetail.as_view()),
     url(r'get_archived_config/(?P<pk>[0-9]+)/$', ArchiveConfig.as_view()),
     url(r'get_config_diff/(?P<pk>[0-9]+)/(?P<pk2>[0-9]+)/$', ConfigDiff.as_view()),
+    url(r'is_pppoe_ia_configured/(?P<ip>.+)/$', IsPPPoEIAConfigured.as_view()),
     url(r'^', include(router.urls))
 
 ]
