@@ -261,7 +261,7 @@ def discover_one_host(host):
 
 
 @app.task(bind=True, time_limit=20*60)
-def celery_discover_vendor(self, subnets):
+def celery_discover_vendor(self, subnets=('',)):
     """
     Does network element discovery and finds logins/passwords from credentials database. Works in Celery
 
