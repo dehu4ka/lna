@@ -112,6 +112,9 @@ class ConfigDiff(ArchiveConfig):
 
 
 class IsPPPoEIAConfigured(APIView):
+    """
+    Does search for pppoe intermediate agent in config. Returns JSON with search result
+    """
     permission_classes = (AllowAny, )
 
     def get(self, request, ip, *args, **kwargs):
@@ -121,9 +124,27 @@ class IsPPPoEIAConfigured(APIView):
             raise Http404
         config = obj.current_config
         if obj.model == 'S2309TP-EI' or obj.model == 'SNR-S2985G-8T' or obj.model == 'S3328TP-EI':
-            if config.find('pppoe intermediate-agent information enable') == -1:
+            if config.find('pppoe intermediate-agent') == -1:
                 return Response({'configured': False})
             else:
                 return Response({'configured': True})
         else:
             return Response({'configured': 'N/A'})
+
+
+class ConfigSearch(APIView):
+    """
+    Does search for string in NE config. Returns JSON with search result
+    """
+    permission_classes = (AllowAny,)
+
+    def get(self, request, ip, search, *args, **kwargs):
+        try:
+            obj = Equipment.objects.get(ne_ip=ip)
+        except Equipment.DoesNotExist:
+            raise Http404
+        config = obj.current_config
+        if config.find(search) == -1:
+            return Response({'found': False})
+        else:
+            return Response({'found': True})
