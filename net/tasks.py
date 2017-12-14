@@ -255,7 +255,8 @@ def discover_one_host(host):
         vendor = eq.discover_vendor()
         if vendor:
             message_from_celery += " Vendor was found: %s" % vendor
-            eq.get_config()
+            # config discovery is too slow
+            # eq.get_config()
         eq.disconnect()
     return message_from_celery
 
@@ -290,15 +291,25 @@ def celery_discover_vendor(self, subnets=('',)):
 
     for subnet in subnets:
         # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
+        # log.info('Got subnet %s' % subnet)
         try:
             if subnet.find("/") == -1:
                 # one host
-                hosts = Equipment.objects.filter(ne_ip=subnet)
+                hosts = Equipment.objects.get(ne_ip=subnet)
                 total += 1  # assuming that IP address is unique field in DB
-        except AttributeError:
+                log.info("Got one host: %s" % hosts.ne_ip)
+            else:
+                log.info('Subnet slash "/" found in %s' % subnet)
+                hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
+                count = hosts.count()
+                total += count
+                log.info("Got subnet %s with %s hosts" % (subnet, count))
+        except AttributeError:  # exception in case subnet was taken from DB
             # subnet
             hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
-            total += hosts.count()
+            count = hosts.count()
+            total += count
+            log.info("Got subnet %s with %s hosts" % (subnet, count))
 
     result += "Discover vendor task has started. Total %s devices<br />\n" % total
     log.warning("Total host to scan: %s" % total)
@@ -311,6 +322,8 @@ def celery_discover_vendor(self, subnets=('',)):
             if subnet.find("/") == -1:
                 # one host
                 hosts = Equipment.objects.filter(ne_ip=subnet)
+            else:
+                hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
         except AttributeError:
             # subnet
             hosts = Equipment.objects.filter(ne_ip__net_contained=subnet)
