@@ -7,7 +7,7 @@ from celery.exceptions import TaskRevokedError, WorkerShutdown, WorkerTerminate
 from channels import Group
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
-
+from django.db.models import Q
 from lna.taskapp.celery_app import app
 from net.equipment.generic import b2a, GenericEquipment
 from argus.models import ASTU
@@ -16,6 +16,7 @@ import concurrent.futures
 import multiprocessing
 
 MAX_WORKERS = multiprocessing.cpu_count()*10
+# MAX_WORKERS = 5
 
 log = logging.getLogger(__name__)
 
@@ -261,6 +262,28 @@ def discover_one_host(host):
     return message_from_celery
 
 
+def get_config_from(host):
+    """
+    Does config discovery for one host. Returns message with result
+
+    :param host: Equipment object
+
+    :return: string, message with discovery result
+    """
+    eq = GenericEquipment(host)
+    message_from_celery = "Host: %s." % eq.ip
+    eq.set_io_timeout(1)
+    eq.do_login()
+    if eq.get_config():
+        message_from_celery += " Config fetched successfully"
+    else:
+        message_from_celery += " Can't get config from NE"
+    eq.disconnect()
+    return message_from_celery
+
+
+
+
 @app.task(bind=True, time_limit=20*60)
 def celery_discover_vendor(self, subnets=('',)):
     """
@@ -331,6 +354,101 @@ def celery_discover_vendor(self, subnets=('',)):
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             # start host discovery
             future_to_scan = {executor.submit(discover_one_host, host): host for host in hosts}
+            # waiting for futures
+            for future in concurrent.futures.as_completed(future_to_scan):
+                future_result = future_to_scan[future]
+                try:
+                    message = future.result()
+                    result += message + "<br />\n"
+                    host_counter += 1
+                    update_job_status(self, state=states.STARTED,
+                                      meta={'current': host_counter, 'total': total}, message=message)
+                except Exception as exc:
+                    host_counter += 1
+                    message = '%r generated an exception: %s' % (future_result, exc)
+                    result += message + "<br />\n"
+                    log.warning(message)
+                    update_job_status(self, state=states.STARTED,
+                                      meta={'current': host_counter, 'total': total}, message=message)
+                else:
+                    log.info(message)
+
+    update_job_status(self, state=states.SUCCESS, result=result + '<br />Done.')
+    return result
+
+
+@app.task(bind=True, time_limit=20*60)
+def celery_get_config(self, subnets=('',)):
+    """
+    Does config discovery. Works in Celery. Does only fast devices config fetch.
+
+    :param subnets: list with subnets to discover
+
+    :param self: Celery task reference
+
+    :return: None
+
+    """
+
+    # task called without arguments | tuple or list or None
+    if subnets == ('',) or subnets == ['', ] or subnets is None:
+        subnets_objects = Subnets.objects.all()
+        log.info('celery_get_config task called without parameters, getting subnets from DB')
+        subnets = [s.network for s in subnets_objects]
+
+    log.warning("Celery task in celery_get_config")
+    log.info("Subnets are: %s" % subnets)
+    result = ""  # Task result
+
+    # First, we need to count NE total
+    total, host_counter = 0, 0  # total host to discover, completed host counter
+
+    for subnet in subnets:
+        # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
+        # log.info('Got subnet %s' % subnet)
+        try:
+            if subnet.find("/") == -1:
+                # one host
+                hosts = Equipment.objects.get(ne_ip=subnet)
+                total += 1  # assuming that IP address is unique field in DB
+                log.info("Got one host: %s" % hosts.ne_ip)
+            else:
+                log.info('Subnet slash "/" found in %s' % subnet)
+                hosts = Equipment.objects.filter(ne_ip__net_contained=subnet).filter(~Q(vendor='Alcatel')).\
+                    filter(vendor__isnull=False).filter(telnet_port_open=True)
+                count = hosts.count()
+                total += count
+                log.info("Got subnet %s with %s hosts" % (subnet, count))
+        except AttributeError:  # exception in case subnet was taken from DB
+            # subnet
+            hosts = Equipment.objects.filter(ne_ip__net_contained=subnet).filter(~Q(vendor='Alcatel')).\
+                filter(vendor__isnull=False).filter(telnet_port_open=True)
+            count = hosts.count()
+            total += count
+            log.info("Got subnet %s with %s hosts" % (subnet, count))
+
+    result += "Config discovery task has started. Total %s devices<br />\n" % total
+    log.warning("Total host to scan: %s" % total)
+    update_job_status(self, state=states.STARTED, meta={'current': 0, 'total': total},
+                      message=result)
+
+    for subnet in subnets:
+        # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
+        try:
+            if subnet.find("/") == -1:
+                # one host
+                hosts = Equipment.objects.filter(ne_ip=subnet)
+            else:
+                hosts = Equipment.objects.filter(ne_ip__net_contained=subnet).filter(~Q(vendor='Alcatel')).\
+                    filter(vendor__isnull=False).filter(telnet_port_open=True)
+        except AttributeError:
+            # subnet
+            hosts = Equipment.objects.filter(ne_ip__net_contained=subnet).filter(~Q(vendor='Alcatel')).\
+                    filter(vendor__isnull=False).filter(telnet_port_open=True)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # start host discovery
+            future_to_scan = {executor.submit(get_config_from, host): host for host in hosts}
             # waiting for futures
             for future in concurrent.futures.as_completed(future_to_scan):
                 future_result = future_to_scan[future]

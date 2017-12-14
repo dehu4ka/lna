@@ -275,7 +275,7 @@ class GenericEquipment(object):
         :return:
         """
         if not self.is_logged:
-            raise NotLoggedIn
+            raise NotLoggedIn(self.ip)
         output = ''  # all output in ascii will be here
         self.l.debug('>>>> sending')
         self.l.debug(c.RED + c.BOLD + cmd + c.RESET)
@@ -289,10 +289,10 @@ class GenericEquipment(object):
             out = self.t.expect(self.pager, timeout=self.io_timeout)
             output += b2a(out[2])
             if out[0] == -1:
-                self.l.debug('Got IO Timeout')
+                self.l.warning('Got IO Timeout on %s' % self.ip)
                 break
             if out[1].re != re_with_prompt:  # out[1] is re match object. out[1].re is matched regular expression
-                self.l.debug('sending SPACE')
+                # self.l.debug('sending SPACE')
                 self.t.write(a2b(' '))  # sending SPACE to get next page
             elif out[1].re == re_with_prompt:
                 self.l.debug('Got prompt, command execution complete.')
@@ -562,14 +562,20 @@ class GenericEquipment(object):
             return found_vendor
         return False
 
-    def _get_config_with(self, cmd, timeout=30):
+    def _get_config_with(self, cmd_list, timeout=30):
         # default 30 sec must be enough to most cases. Some CPU overloaded devices are really slow
         self.io_timeout = timeout
-        current_config = self.exec_cmd(cmd)
+        current_config = ''
+        # We can pass multiple commands to get config
+        if (type(cmd_list) is list) or (type(cmd_list) is tuple):
+            for cmd in cmd_list:
+                current_config += self.exec_cmd(cmd)
+        else:
+            current_config = self.exec_cmd(cmd_list)
         self.io_timeout = 1  # reverting timeout
 
         if self.equipment_object.current_config == current_config:  # Checking if no changes was since last check:
-            self.l.debug('Configuration has not changed')
+            self.l.debug('%s. Configuration has not changed' % self.ip)
             return True
 
         self.l.debug('Writing config to DB')
@@ -587,16 +593,19 @@ class GenericEquipment(object):
         self.l.debug('Trying to get config from NE')
         if self.equipment_object.vendor == 'Cisco' or self.equipment_object.vendor == 'SNR':
             self.exec_cmd('terminal length 0')  # disable pager
-            self._get_config_with('show run')
+            cmds = ('show inv', 'show module', 'show run')
+            self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Juniper':
-            self._get_config_with('show configuration | no-more')
+            cmds = ('show chassis hardware | no-more', 'show configuration | no-more')
+            self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Huawei':
             self.exec_cmd('screen-width 500')
             self.exec_cmd('y')
             self.exec_cmd('screen-length 0 temporary')
-            self._get_config_with('display current-configuration')
+            cmds = ('display elabel', 'display current-configuration')
+            self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Eltex':
             self.exec_cmd('terminal datadump')
@@ -605,8 +614,10 @@ class GenericEquipment(object):
             return True
         elif self.equipment_object.vendor == 'Alcatel':
             self._get_config_with('info configure flat | no-more', timeout=300)  # very long configuration retrieving
+            return True
         elif self.equipment_object.vendor == 'Zyxel':
             self._get_config_with('config show all')
+            return True
         else:
             self.l.warning("Can not get config from unknown vendor!")
             return False

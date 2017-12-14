@@ -14,8 +14,8 @@ class NoKnownPassword(Exception):
 
 
 class NotLoggedIn(Exception):
-    def __init__(self):
-        Exception.__init__(self, "Trying to exec commands without logged in to device")
+    def __init__(self, ip):
+        Exception.__init__(self, "Trying to exec commands without logged in to device with IP: %s" % ip)
 
 
 class BadCommandPrompt(Exception):
