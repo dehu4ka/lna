@@ -15,8 +15,8 @@ from net.models import Job, JobResult, Equipment, Subnets
 import concurrent.futures
 import multiprocessing
 
-MAX_WORKERS = multiprocessing.cpu_count()*10
-# MAX_WORKERS = 5
+# MAX_WORKERS = multiprocessing.cpu_count()*10
+MAX_WORKERS = 80
 
 log = logging.getLogger(__name__)
 
@@ -145,7 +145,7 @@ def login_suggest_task(self, destination_ids):
             astu_object = ASTU.objects.get(pk=target_id)  # getting ASTU object
             # Getting or creating Equipment object with IP-address of ASTU object
             eq_obj, created = Equipment.objects.get_or_create(ne_ip=astu_object.ne_ip)
-            eq = GenericEquipment(eq_obj)
+            eq = GenericEquipment(eq_obj, inside_celery=True)
             result = eq.suggest_login(resuggest=False)  # dict
             if result:
                 result_to_send = "<br>[%s]Discovered credentials, L: %s, P: %s" % \
@@ -244,7 +244,7 @@ def discover_one_host(host):
 
     :return: string, message with discovery result
     """
-    eq = GenericEquipment(host)
+    eq = GenericEquipment(host, inside_celery=True)
     message_from_celery = "Host: %s." % eq.ip
     # need to adjust it? or 1 sec is enough?
     eq.set_io_timeout(1)
@@ -270,9 +270,11 @@ def get_config_from(host):
 
     :return: string, message with discovery result
     """
-    eq = GenericEquipment(host)
+    eq = GenericEquipment(host, inside_celery=True)
     message_from_celery = "Host: %s." % eq.ip
     eq.set_io_timeout(1)
+    if not eq.connect():
+        return message_from_celery + " Can not connect."
     eq.do_login()
     if eq.get_config():
         message_from_celery += " Config fetched successfully"
@@ -280,8 +282,6 @@ def get_config_from(host):
         message_from_celery += " Can't get config from NE"
     eq.disconnect()
     return message_from_celery
-
-
 
 
 @app.task(bind=True, time_limit=20*60)

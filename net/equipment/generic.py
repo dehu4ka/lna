@@ -1,3 +1,5 @@
+from django.db import connection
+
 from net.models import Equipment, Credentials, EquipmentSuggestCredentials, EquipmentConfig
 from telnetlib import Telnet
 import logging
@@ -12,6 +14,7 @@ from argus.models import ASTU
 c = Colors()
 
 handler = logging.StreamHandler()
+
 
 def a2b(ascii_str):  # ascii to binary
     return ascii_str.encode('ascii')
@@ -69,7 +72,7 @@ def setup_logger(name, verbosity=1):
 
 
 class GenericEquipment(object):
-    def __init__(self, equipment_object):
+    def __init__(self, equipment_object, inside_celery=False):
         if not isinstance(equipment_object, Equipment):
             raise Exception("Passed to constructor not Equipment Object")
         self.equipment_object = equipment_object
@@ -78,18 +81,35 @@ class GenericEquipment(object):
         self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
         self.l.debug('Equipment object was created, IP: %s', self.ip)
         self.t = Telnet()
-        self.is_connected = False
+        self.is_connected = False  # telnet connection status
         self.prompt = ''  # приглашение командной строки
         self.pager = self.init_pager()
-        self.is_logged = False  # удалось ли авторизоваться
+        self.is_logged = False  # authorization status
         self.in_configure_mode = False
         self.io_timeout = 0.5  # timeout between entering CMD and waiting for output
+        self.inside_celery = inside_celery  # is code runs inside Celery
         if equipment_object.credentials:
             self.username = equipment_object.credentials.login
             self.passw = equipment_object.credentials.passw
         else:
             self.username = None
             self.passw = None
+        # After fetching login credentials we must close DB connection, django / celery doesnt did it automatically
+        self.close_db_connection('in __init__')
+
+    def close_db_connection(self, where=''):
+        """
+        Checks if function executed inside celery task. If its true - closes db connection.
+
+        Otherwise - does not do nothing.
+
+        :param where: Optional parameter for logging, where this function was executed.
+
+        :return: None
+        """
+        if self.inside_celery:
+            self.l.debug('Closing DB connection in %s' % where)
+            connection.close()
 
     def _sleep(self, timeout=1.0):
         self.l.debug("Sleeping for " + str(timeout) + " sec")
@@ -152,12 +172,12 @@ class GenericEquipment(object):
                     self.equipment_object.save()  # and write changes
                 return False
 
-
-
     def disconnect(self):
         self.is_connected = False  # pointless ?
         self.is_logged = False
         self.t.close()
+        # https://stackoverflow.com/questions/1303654/threaded-django-task-doesnt-automatically-handle-transactions-or-db-connections
+        self.close_db_connection("in disconnect")
 
     def suggest_login(self, resuggest=False):
         """Tries to guess or suggest in other words device's login and password. Uses credentials stored in credentials database.
@@ -366,10 +386,8 @@ class GenericEquipment(object):
         """
         if self.passw is None:
             raise NoKnownPassword
-        if self.is_connected:
-            self.disconnect()
         if not self.connect():
-            return False
+            raise NotConnected(self.ip)
         # connecting
         was_found, out = self.expect(LOGIN_PROMPTS)  # we need to wait for login prompt
         self._print_recv(out)  # debug out
@@ -379,10 +397,7 @@ class GenericEquipment(object):
         self.send(self.passw)  # sending known password
         self._sleep(0.5)  # waiting for possible tacacs timeout
         # it seems that old code is better than a new one -> _discover_prompt()
-        try:
-            self._discover_prompt()
-        except BadCommandPrompt:
-            return False
+        self._discover_prompt()  # Raises exception if cant' discover prompt
         return True
 
     def _discover_prompt(self):

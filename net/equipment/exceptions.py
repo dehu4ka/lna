@@ -19,10 +19,10 @@ class NotLoggedIn(Exception):
 
 
 class BadCommandPrompt(Exception):
-    def __init__(self):
-        Exception.__init__(self, "Bad command/shell prompt discovered. Check timeouts and login credentials")
+    def __init__(self, ip):
+        Exception.__init__(self, "Bad command/shell prompt discovered on %s. Check timeouts and login credentials" % ip)
 
 
 class NotConnected(Exception):
-    def __init__(self):
-        Exception.__init__(self, "Trying to do something on device without connection.")
+    def __init__(self, ip):
+        Exception.__init__(self, "Trying to do something on device %s without connection." % ip)
