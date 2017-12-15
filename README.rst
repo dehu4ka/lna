@@ -72,7 +72,7 @@ To run a celery worker:
     cd lna
     celery -A lna.taskapp.celery_app worker -l info -E
     or with flower
-    celery -A lna.taskapp flower
+    celery -A lna.taskapp.celery_app flower
 
 Please note: For Celery's import magic to work, it is important *where* the celery commands are run. If you are in the same folder with *manage.py*, you should be right.
 
