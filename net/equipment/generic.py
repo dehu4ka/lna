@@ -78,7 +78,7 @@ class GenericEquipment(object):
         self.equipment_object = equipment_object
         # ne_ip is ipaddress.ip_interface, see https://docs.python.org/3/library/ipaddress.html
         self.ip = str(equipment_object.ne_ip.ip)
-        self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
+        self.l = setup_logger('net.equipment.generic', 0)  # 2 means debug
         self.l.debug('Equipment object was created, IP: %s', self.ip)
         self.t = Telnet()
         self.is_connected = False  # telnet connection status
@@ -203,14 +203,15 @@ class GenericEquipment(object):
                 self.l.debug("Skipping this...")
                 continue  # skipping this one
             # Trying to login with that creds:
-            self.l.info("SUGGESTING LOGIN | Trying to login with L: %s, P: %s" % (c.YELLOW + credential.login + c.RESET,
-                                                                                  c.PURPLE + credential.passw +
-                                                                                  c.RESET))
+            self.l.info("SUGGESTING LOGIN | Trying to login with L: %s, P: %s to device: %s" %
+                        (c.YELLOW + credential.login + c.RESET, c.PURPLE + credential.passw + c.RESET,
+                         c.RED + self.ip + c.RESET))
             self.username = credential.login
             self.passw = credential.passw
             if not self.is_connected:
                 if not self.connect():  # connecting
                     self.l.warning("Can't connect, so we can't suggest login.")
+                    self.disconnect()
                     return False
             try:
                 if self.try_to_login():  # if login was successful
@@ -242,12 +243,12 @@ class GenericEquipment(object):
                 self.disconnect()
                 return False  # Other connection attempts will be unsuccessful, Alcatel anti-bruteforce.
             except NoPasswordPrompt:
-                self.l.info("Disconnecting. No Password Prompt were detected")
+                self.l.info("Disconnecting. No Password Prompt were detected at %s" % self.ip)
                 self.disconnect()
             except NoLoginPrompt:
                 self.l.info("Disconnecting. No Login Prompt were detected")
                 self.disconnect()
-        self.l.warning("%sCouldn't find suggested credentials%s" % (c.CYAN + c.BOLD, c.RESET))
+        self.l.warning("%sCouldn't find suggested credentials at %s %s" % (c.CYAN + c.BOLD, self.ip, c.RESET))
         self.disconnect()  # Disconnecting
         # Pushing None values to self object login and password
         self.username = None
@@ -356,7 +357,7 @@ class GenericEquipment(object):
         was_found, out = self.expect(PASSWORD_PROMPTS)
         # self._print_recv(out)
         if not was_found:  # same for password
-            self.l.warning("Can't find password prompt")
+            self.l.warning("Can't find password prompt at %s" % self.ip)
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
         self._sleep(5)  # 2 seconds because most equipment have big timeout after unsuccessful login

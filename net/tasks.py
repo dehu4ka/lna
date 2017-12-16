@@ -15,7 +15,7 @@ from net.models import Job, JobResult, Equipment, Subnets
 import concurrent.futures
 import multiprocessing
 
-MAX_WORKERS = multiprocessing.cpu_count()*5
+MAX_WORKERS = multiprocessing.cpu_count()*10
 # MAX_WORKERS = 80
 
 log = logging.getLogger(__name__)
