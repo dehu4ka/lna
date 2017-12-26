@@ -303,7 +303,7 @@ ADMIN_URL = r'^admin/'
 
 # Your common stuff: Below this line define 3rd party library settings
 # ------------------------------------------------------------------------------
-ALLOWED_HOSTS = ['10.179.9.55', '10.205.29.29', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['10.179.9.55', '10.205.29.29', '127.0.0.1', 'localhost']  # +
 
 EL_PAGINATION_PER_PAGE = 9
 ENDLESS_PAGINATION_PAGE_LIST_CALLABLE = 'endless_pagination.utils.get_elastic_page_numbers'
