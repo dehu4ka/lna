@@ -3,7 +3,8 @@ from django.utils import timezone
 from django.db import transaction
 from channels import Group
 from net.equipment.generic import GenericEquipment
-from net.tasks import ping_task, login_suggest_task, long_job_task, celery_scan_nets_with_fping, celery_discover_vendor
+from net.tasks import ping_task, login_suggest_task, long_job_task, celery_scan_nets_with_fping, \
+    celery_discover_vendor, celery_get_config
 from net.models import Job, JobResult, Scripts, Equipment
 from argus.models import ASTU
 import subprocess
@@ -51,6 +52,11 @@ def celery_job_starter(destinations_ids, script_id):
         # task = celery_discover_vendor.delay(subnets=destinations_ids)
         task = celery_discover_vendor.apply_async(kwargs={'subnets': destinations_ids}, track_started=True,
                                                   countdown=COUNTDOWN)
+        destinations_ids = list()
+    elif script_id == '1001':
+        # task = celery_discover_vendor.delay(subnets=destinations_ids)
+        task = celery_get_config.apply_async(kwargs={'subnets': destinations_ids}, track_started=True,
+                                             countdown=COUNTDOWN)
         destinations_ids = list()
     else:
         return False

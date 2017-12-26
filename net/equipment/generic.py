@@ -1,3 +1,5 @@
+from django.db import connection
+
 from net.models import Equipment, Credentials, EquipmentSuggestCredentials, EquipmentConfig
 from telnetlib import Telnet
 import logging
@@ -12,6 +14,7 @@ from argus.models import ASTU
 c = Colors()
 
 handler = logging.StreamHandler()
+
 
 def a2b(ascii_str):  # ascii to binary
     return ascii_str.encode('ascii')
@@ -69,27 +72,44 @@ def setup_logger(name, verbosity=1):
 
 
 class GenericEquipment(object):
-    def __init__(self, equipment_object):
+    def __init__(self, equipment_object, inside_celery=False):
         if not isinstance(equipment_object, Equipment):
             raise Exception("Passed to constructor not Equipment Object")
         self.equipment_object = equipment_object
         # ne_ip is ipaddress.ip_interface, see https://docs.python.org/3/library/ipaddress.html
         self.ip = str(equipment_object.ne_ip.ip)
-        self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
+        self.l = setup_logger('net.equipment.generic', 0)  # 2 means debug
         self.l.debug('Equipment object was created, IP: %s', self.ip)
         self.t = Telnet()
-        self.is_connected = False
+        self.is_connected = False  # telnet connection status
         self.prompt = ''  # приглашение командной строки
         self.pager = self.init_pager()
-        self.is_logged = False  # удалось ли авторизоваться
+        self.is_logged = False  # authorization status
         self.in_configure_mode = False
         self.io_timeout = 0.5  # timeout between entering CMD and waiting for output
+        self.inside_celery = inside_celery  # is code runs inside Celery
         if equipment_object.credentials:
             self.username = equipment_object.credentials.login
             self.passw = equipment_object.credentials.passw
         else:
             self.username = None
             self.passw = None
+        # After fetching login credentials we must close DB connection, django / celery doesnt did it automatically
+        self.close_db_connection('in __init__')
+
+    def close_db_connection(self, where=''):
+        """
+        Checks if function executed inside celery task. If its true - closes db connection.
+
+        Otherwise - does not do nothing.
+
+        :param where: Optional parameter for logging, where this function was executed.
+
+        :return: None
+        """
+        if self.inside_celery:
+            self.l.debug('Closing DB connection in %s' % where)
+            connection.close()
 
     def _sleep(self, timeout=1.0):
         self.l.debug("Sleeping for " + str(timeout) + " sec")
@@ -152,12 +172,12 @@ class GenericEquipment(object):
                     self.equipment_object.save()  # and write changes
                 return False
 
-
-
     def disconnect(self):
         self.is_connected = False  # pointless ?
         self.is_logged = False
         self.t.close()
+        # https://stackoverflow.com/questions/1303654/threaded-django-task-doesnt-automatically-handle-transactions-or-db-connections
+        self.close_db_connection("in disconnect")
 
     def suggest_login(self, resuggest=False):
         """Tries to guess or suggest in other words device's login and password. Uses credentials stored in credentials database.
@@ -183,14 +203,15 @@ class GenericEquipment(object):
                 self.l.debug("Skipping this...")
                 continue  # skipping this one
             # Trying to login with that creds:
-            self.l.info("SUGGESTING LOGIN | Trying to login with L: %s, P: %s" % (c.YELLOW + credential.login + c.RESET,
-                                                                                  c.PURPLE + credential.passw +
-                                                                                  c.RESET))
+            self.l.info("SUGGESTING LOGIN | Trying to login with L: %s, P: %s to device: %s" %
+                        (c.YELLOW + credential.login + c.RESET, c.PURPLE + credential.passw + c.RESET,
+                         c.RED + self.ip + c.RESET))
             self.username = credential.login
             self.passw = credential.passw
             if not self.is_connected:
                 if not self.connect():  # connecting
                     self.l.warning("Can't connect, so we can't suggest login.")
+                    self.disconnect()
                     return False
             try:
                 if self.try_to_login():  # if login was successful
@@ -222,12 +243,12 @@ class GenericEquipment(object):
                 self.disconnect()
                 return False  # Other connection attempts will be unsuccessful, Alcatel anti-bruteforce.
             except NoPasswordPrompt:
-                self.l.info("Disconnecting. No Password Prompt were detected")
+                self.l.info("Disconnecting. No Password Prompt were detected at %s" % self.ip)
                 self.disconnect()
             except NoLoginPrompt:
                 self.l.info("Disconnecting. No Login Prompt were detected")
                 self.disconnect()
-        self.l.warning("%sCouldn't find suggested credentials%s" % (c.CYAN + c.BOLD, c.RESET))
+        self.l.warning("%sCouldn't find suggested credentials at %s %s" % (c.CYAN + c.BOLD, self.ip, c.RESET))
         self.disconnect()  # Disconnecting
         # Pushing None values to self object login and password
         self.username = None
@@ -275,7 +296,7 @@ class GenericEquipment(object):
         :return:
         """
         if not self.is_logged:
-            raise NotLoggedIn
+            raise NotLoggedIn(self.ip)
         output = ''  # all output in ascii will be here
         self.l.debug('>>>> sending')
         self.l.debug(c.RED + c.BOLD + cmd + c.RESET)
@@ -289,10 +310,10 @@ class GenericEquipment(object):
             out = self.t.expect(self.pager, timeout=self.io_timeout)
             output += b2a(out[2])
             if out[0] == -1:
-                self.l.debug('Got IO Timeout')
+                self.l.warning('Got IO Timeout on %s' % self.ip)
                 break
             if out[1].re != re_with_prompt:  # out[1] is re match object. out[1].re is matched regular expression
-                self.l.debug('sending SPACE')
+                # self.l.debug('sending SPACE')
                 self.t.write(a2b(' '))  # sending SPACE to get next page
             elif out[1].re == re_with_prompt:
                 self.l.debug('Got prompt, command execution complete.')
@@ -336,7 +357,7 @@ class GenericEquipment(object):
         was_found, out = self.expect(PASSWORD_PROMPTS)
         # self._print_recv(out)
         if not was_found:  # same for password
-            self.l.warning("Can't find password prompt")
+            self.l.warning("Can't find password prompt at %s" % self.ip)
             raise NoPasswordPrompt
         self.send(self.passw)  # sending password
         self._sleep(5)  # 2 seconds because most equipment have big timeout after unsuccessful login
@@ -366,10 +387,8 @@ class GenericEquipment(object):
         """
         if self.passw is None:
             raise NoKnownPassword
-        if self.is_connected:
-            self.disconnect()
         if not self.connect():
-            return False
+            raise NotConnected(self.ip)
         # connecting
         was_found, out = self.expect(LOGIN_PROMPTS)  # we need to wait for login prompt
         self._print_recv(out)  # debug out
@@ -379,10 +398,7 @@ class GenericEquipment(object):
         self.send(self.passw)  # sending known password
         self._sleep(0.5)  # waiting for possible tacacs timeout
         # it seems that old code is better than a new one -> _discover_prompt()
-        try:
-            self._discover_prompt()
-        except BadCommandPrompt:
-            return False
+        self._discover_prompt()  # Raises exception if cant' discover prompt
         return True
 
     def _discover_prompt(self):
@@ -562,14 +578,20 @@ class GenericEquipment(object):
             return found_vendor
         return False
 
-    def _get_config_with(self, cmd, timeout=30):
+    def _get_config_with(self, cmd_list, timeout=30):
         # default 30 sec must be enough to most cases. Some CPU overloaded devices are really slow
         self.io_timeout = timeout
-        current_config = self.exec_cmd(cmd)
+        current_config = ''
+        # We can pass multiple commands to get config
+        if (type(cmd_list) is list) or (type(cmd_list) is tuple):
+            for cmd in cmd_list:
+                current_config += self.exec_cmd(cmd)
+        else:
+            current_config = self.exec_cmd(cmd_list)
         self.io_timeout = 1  # reverting timeout
 
         if self.equipment_object.current_config == current_config:  # Checking if no changes was since last check:
-            self.l.debug('Configuration has not changed')
+            self.l.debug('%s. Configuration has not changed' % self.ip)
             return True
 
         self.l.debug('Writing config to DB')
@@ -587,16 +609,19 @@ class GenericEquipment(object):
         self.l.debug('Trying to get config from NE')
         if self.equipment_object.vendor == 'Cisco' or self.equipment_object.vendor == 'SNR':
             self.exec_cmd('terminal length 0')  # disable pager
-            self._get_config_with('show run')
+            cmds = ('show inv', 'show module', 'show run')
+            self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Juniper':
-            self._get_config_with('show configuration | no-more')
+            cmds = ('show chassis hardware | no-more', 'show configuration | no-more')
+            self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Huawei':
             self.exec_cmd('screen-width 500')
             self.exec_cmd('y')
             self.exec_cmd('screen-length 0 temporary')
-            self._get_config_with('display current-configuration')
+            cmds = ('display elabel', 'display current-configuration')
+            self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Eltex':
             self.exec_cmd('terminal datadump')
@@ -605,8 +630,10 @@ class GenericEquipment(object):
             return True
         elif self.equipment_object.vendor == 'Alcatel':
             self._get_config_with('info configure flat | no-more', timeout=300)  # very long configuration retrieving
+            return True
         elif self.equipment_object.vendor == 'Zyxel':
             self._get_config_with('config show all')
+            return True
         else:
             self.l.warning("Can not get config from unknown vendor!")
             return False
