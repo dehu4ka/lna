@@ -31,6 +31,7 @@ LOGIN_PROMPTS = [
     re.compile(b'login:', flags=re.I),
     re.compile(b'user name:', flags=re.I),
     re.compile(b'user name: ', flags=re.I),
+    re.compile(b'>>User name:', flags=re.I),
 
 ]
 
@@ -39,6 +40,7 @@ PASSWORD_PROMPTS = [
     re.compile(b'pass:', flags=re.I),
     re.compile(b'password: ', flags=re.I),
     re.compile(b'password:', flags=re.I),
+    re.compile(b'>>User password:', flags=re.I),
 ]
 
 AUTHENTICATION_FAILED = [
@@ -49,6 +51,7 @@ AUTHENTICATION_FAILED = [
     re.compile(b'Error: Failed to authenticate', flags=re.I),  # huawei no tacacs
     re.compile(b'Error: Password incorrect', flags=re.I),  # huawei
     re.compile(b'Invalid user name and password', flags=re.I),  # SNR
+    re.compile(b'Username or password invalid.', flags=re.I),  # Huawei OLT
 ]
 
 
@@ -78,7 +81,7 @@ class GenericEquipment(object):
         self.equipment_object = equipment_object
         # ne_ip is ipaddress.ip_interface, see https://docs.python.org/3/library/ipaddress.html
         self.ip = str(equipment_object.ne_ip.ip)
-        self.l = setup_logger('net.equipment.generic', 0)  # 2 means debug
+        self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
         self.l.debug('Equipment object was created, IP: %s', self.ip)
         self.t = Telnet()
         self.is_connected = False  # telnet connection status
@@ -134,6 +137,7 @@ class GenericEquipment(object):
         pagers.append(re.compile(b'  ---- More ----'))
         pagers.append(re.compile(b'All: a, More: <space>, One line: <return>, Quit: q or <ctrl>\+z'))
         pagers.append(re.compile(b"press 'e' to exit showall, 'n' for nopause, or any key to continue\.\.\."))
+        pagers.append(re.compile(b"---- More \( Press 'Q' to break \) ----"))
         # pagers.append(re.compile(b'return user view with Ctrl\+Z'))
         return pagers
 
@@ -310,10 +314,10 @@ class GenericEquipment(object):
             out = self.t.expect(self.pager, timeout=self.io_timeout)
             output += b2a(out[2])
             if out[0] == -1:
-                self.l.warning('Got IO Timeout on %s' % self.ip)
+                self.l.warning('Got IO Timeout on %s in exec_cmd()' % self.ip)
                 break
             if out[1].re != re_with_prompt:  # out[1] is re match object. out[1].re is matched regular expression
-                # self.l.debug('sending SPACE')
+                self.l.debug('sending SPACE in exec_cmd()')
                 self.t.write(a2b(' '))  # sending SPACE to get next page
             elif out[1].re == re_with_prompt:
                 self.l.debug('Got prompt, command execution complete.')
@@ -407,29 +411,43 @@ class GenericEquipment(object):
 
         :return:
         """
+        self.l.debug('_discover_prompt()')
         if not self.is_connected:
             raise NotConnected
-        self.send('')  # sending empty command
-        out = self.t.read_until(b'whatever?', self.io_timeout)  # wainting for io_timeout for command promt
-        out = out.replace(b'\x1b[K', b'')
-        """
-        Thx to https://jcastellssala.com/2012/07/20/python-command-line-waiting-feedback-and-some-background-on-why/
-        \r Escape sequence for a Carriage Return (Go to the beginning of the line).
-        \x1b[ Code for CSI (Control Sequence Introducer, nothing to do with the TV-series. check Wikipedia). 
-        It is formed by the hexadecimal escape value 1b (\x1b) followed by [.
-        K is the Escape sequence code to Erase the line.
-        """
-        self._print_recv(b2a(out))  # reading it
-        if out is not b"":
-            self.prompt = b2a(out).splitlines()[-1]  # getting it
-        else:
-            self.l.error("Command prompt cant be empty")
-            raise BadCommandPrompt
-        if re.search(r'(\*)+', self.prompt, re.MULTILINE):
-            # We have found * (asterisk character) in command prompt. Usually this is masked password.
-            # So we cant handle it.
-            self.l.error("We have found * (asterisk character) in command prompt. Usually this is masked password.")
-            raise BadCommandPrompt
+        while True:
+            pager_found = False
+            self.send('')  # sending empty command (ENTER key)
+            out = self.t.read_until(b'whatever?', self.io_timeout)  # waiting for io_timeout for command prompt
+            out = out.replace(b'\x1b[K', b'')
+            """
+            Thx to https://jcastellssala.com/2012/07/20/python-command-line-waiting-feedback-and-some-background-on-why/
+            \r Escape sequence for a Carriage Return (Go to the beginning of the line).
+            \x1b[ Code for CSI (Control Sequence Introducer, nothing to do with the TV-series. check Wikipedia). 
+            It is formed by the hexadecimal escape value 1b (\x1b) followed by [.
+            K is the Escape sequence code to Erase the line.
+            """
+            self._print_recv(b2a(out))  # reading it
+            if out is not b"":
+                self.prompt = b2a(out).splitlines()[-1]  # getting it
+            else:
+                self.l.error("Command prompt cant be empty")
+                raise BadCommandPrompt
+            if re.search(r'(\*)+', self.prompt, re.MULTILINE):
+                # We have found * (asterisk character) in command prompt. Usually this is masked password.
+                # So we cant handle it.
+                self.l.error("We have found * (asterisk character) in command prompt. Usually this is masked password.")
+                raise BadCommandPrompt
+            # We need to check if pager string found in output
+            for pager in self.pager:
+                # self.l.debug(pager)
+                # self.l.debug(out)
+                if re.search(pager, out):
+                    self.l.debug("found pager string! Sending SPACE.")
+                    if not pager_found:  # only once per while loop
+                        self.send(' ')  # sending space
+                    pager_found = True
+            if not pager_found:
+                break  # exiting while loop
         self.l.debug("Discovered the prompt: " + c.BOLD + c.WHITE + self.prompt + c.RESET)
         self.is_logged = True
         return self.prompt
@@ -548,7 +566,9 @@ class GenericEquipment(object):
                     self._put_model_and_hostname(model, hostname, sw_version)
             if not found_vendor:
                 # Huawei guessing
-                show_version_command_output = self.exec_cmd('disp ver')
+                self.set_io_timeout(2)  # Some Huawei OLT's is slow
+                show_version_command_output = self.exec_cmd('display version\n')
+                self._print_recv(show_version_command_output)
                 if self._multiline_search(r'(HUAWEI)', show_version_command_output):
                     self.l.info("Huawei device found at IP: %s" % self.ip)
                     found_vendor = 'Huawei'
@@ -556,6 +576,15 @@ class GenericEquipment(object):
                     model = self._multiline_search(r'Quidway (\S+)', show_version_command_output)
                     sw_version = self._multiline_search(r'Version (\d.+)', show_version_command_output)
                     self._put_model_and_hostname(model, hostname, sw_version)
+                if self._multiline_search(r'(MA56)', show_version_command_output):
+                    self.l.info('Huawei OLT device found at IP: %s' % self.ip)
+                    found_vendor = 'Huawei OLT'
+                    hostname = self._multiline_search(r'(.+)>', self.prompt)
+                    model = self._multiline_search(r'PRODUCT : (.+)', show_version_command_output)
+                    sw_version = self._multiline_search(r'VERSION : (.+)', show_version_command_output)
+                    patch = self._multiline_search(r'PATCH.+: (.+)', show_version_command_output)
+                    self._put_model_and_hostname(model, hostname, sw_version + ' ' + patch)
+                self.set_io_timeout(1)  # reverting to default timeout
             if not found_vendor:
                 # Linux guessing
                 show_version_command_output = self.exec_cmd('uname -a')
@@ -621,6 +650,12 @@ class GenericEquipment(object):
             self.exec_cmd('y')
             self.exec_cmd('screen-length 0 temporary')
             cmds = ('display elabel', 'display current-configuration')
+            self._get_config_with(cmds)
+            return True
+        elif self.equipment_object.vendor == 'Huawei OLT':
+            self.exec_cmd('enable')
+            self.exec_cmd('scroll 512')
+            cmds = ('display board 0', 'display current-configuration\n')
             self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Eltex':
