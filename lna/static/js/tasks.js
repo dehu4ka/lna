@@ -30,10 +30,11 @@ function refresh_task(task_id) {
             var current = meta.current;
             var total = meta.total;
             var percent = Math.ceil((current/total)*100);
+            var percent_text = Math.ceil((current/total)*100)  + '% (' + current + '/' + total + ')';
             status_html += '<div class="progress"> \
                     <div class="progress-bar progress-bar-animated progress-bar-striped" role="progressbar" \
             aria-valuenow="' + percent + '" aria-valuemin="0" aria-valuemax="100"\
-             style="width: ' + percent + '%">' + percent + '%</div>\
+             style="width: ' + percent + '%">' + percent_text + '</div>\
                 </div>'
         }
         $('#status-' + task_id).html(status_html)
@@ -121,10 +122,11 @@ function wsconnect(task_id) {
             var current = data.meta.current;
             var total = data.meta.total;
             var percent = Math.ceil((current/total)*100);
+            var percent_text = Math.ceil((current/total)*100)  + '% (' + current + '/' + total + ')';
             var status_html = '<div class="progress"> \
                     <div class="progress-bar progress-bar-animated progress-bar-striped" role="progressbar" \
             aria-valuenow="' + percent + '" aria-valuemin="0" aria-valuemax="100"\
-             style="width: ' + percent + '%">' + percent + '%</div>\
+             style="width: ' + percent + '%">' + percent_text + '</div>\
                 </div>';
             modalStatus.html(status_html);
         } else {

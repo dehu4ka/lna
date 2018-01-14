@@ -14,8 +14,10 @@ from argus.models import ASTU
 from net.models import Job, JobResult, Equipment, Subnets
 import concurrent.futures
 import multiprocessing
+from django.db import connection
 
-MAX_WORKERS = multiprocessing.cpu_count()*10
+
+MAX_WORKERS = multiprocessing.cpu_count()*20
 # MAX_WORKERS = 80
 
 log = logging.getLogger(__name__)
@@ -249,16 +251,19 @@ def discover_one_host(host):
     # need to adjust it? or 1 sec is enough?
     eq.set_io_timeout(1)
     login_suggest_status = eq.suggest_login(resuggest=False)
+    eq.disconnect()
     if login_suggest_status:
         message_from_celery += " Login suggestion was successful."
         # Trying to login only if login guessing was successful
-        eq.do_login()
-        vendor = eq.discover_vendor()
-        if vendor:
-            message_from_celery += " Vendor was found: %s" % vendor
-            # config discovery is too slow
-            # eq.get_config()
-        eq.disconnect()
+        if eq.connect():
+            eq.do_login()
+            vendor = eq.discover_vendor()
+            if vendor:
+                message_from_celery += " Vendor was found: %s" % vendor
+                # config discovery is too slow
+                # eq.get_config()
+            eq.disconnect()
+    connection.close()  # close django db connection for thread
     return message_from_celery
 
 
@@ -281,6 +286,8 @@ def get_config_from(host):
     else:
         message_from_celery += " Can't get config from NE"
     eq.disconnect()
+    connection.close()  # close django db connection for thread
+
     return message_from_celery
 
 

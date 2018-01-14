@@ -1,5 +1,3 @@
-from django.db import connection
-
 from net.models import Equipment, Credentials, EquipmentSuggestCredentials, EquipmentConfig
 from telnetlib import Telnet
 import logging
@@ -97,22 +95,6 @@ class GenericEquipment(object):
         else:
             self.username = None
             self.passw = None
-        # After fetching login credentials we must close DB connection, django / celery doesnt did it automatically
-        self.close_db_connection('in __init__')
-
-    def close_db_connection(self, where=''):
-        """
-        Checks if function executed inside celery task. If its true - closes db connection.
-
-        Otherwise - does not do nothing.
-
-        :param where: Optional parameter for logging, where this function was executed.
-
-        :return: None
-        """
-        if self.inside_celery:
-            self.l.debug('Closing DB connection in %s' % where)
-            connection.close()
 
     def _sleep(self, timeout=1.0):
         self.l.debug("Sleeping for " + str(timeout) + " sec")
@@ -180,8 +162,6 @@ class GenericEquipment(object):
         self.is_connected = False  # pointless ?
         self.is_logged = False
         self.t.close()
-        # https://stackoverflow.com/questions/1303654/threaded-django-task-doesnt-automatically-handle-transactions-or-db-connections
-        self.close_db_connection("in disconnect")
 
     def suggest_login(self, resuggest=False):
         """Tries to guess or suggest in other words device's login and password. Uses credentials stored in credentials database.
@@ -197,6 +177,12 @@ class GenericEquipment(object):
                         'login': self.username,
                         'password': self.passw
                     }
+        # Trying to connect before login attempts
+        if not self.connect():
+            self.l.info("Cannot connect! Telnet port is closed or other error. We shouldn't try to suggest login for "
+                        "that type of NE")
+            return False
+
         credentials = Credentials.objects.all()  # every login/password pairs
         for credential in credentials:
             # if it was tested, length of this filter will be 0
@@ -353,7 +339,7 @@ class GenericEquipment(object):
         was_found, out = self.expect(LOGIN_PROMPTS)
         # self._print_recv(out)
         if not was_found:  # we are expecting to see login prompt
-            self.l.warning("Can't find login prompt")
+            self.l.warning("Can't find login prompt at %s" % self.ip)
             raise NoLoginPrompt
         self.send(self.username)  # sending login
         self._sleep(1)
