@@ -275,19 +275,22 @@ def get_config_from(host):
 
     :return: string, message with discovery result
     """
-    eq = GenericEquipment(host, inside_celery=True)
-    message_from_celery = "Host: %s." % eq.ip
-    eq.set_io_timeout(1)
-    if not eq.connect():
-        return message_from_celery + " Can not connect."
-    eq.do_login()
-    if eq.get_config():
-        message_from_celery += " Config fetched successfully"
-    else:
-        message_from_celery += " Can't get config from NE"
-    eq.disconnect()
-    connection.close()  # close django db connection for thread
+    message_from_celery = "Host: %s." % host
+    try:
+        eq = GenericEquipment(host, inside_celery=True)
+        eq.set_io_timeout(1)
+        if not eq.connect():
+            return message_from_celery + " Can not connect."
+        eq.do_login()
+        if eq.get_config():
+            message_from_celery += " Config fetched successfully"
+        else:
+            message_from_celery += " Can't get config from NE"
+        eq.disconnect()
+    except Exception as e:
+        message_from_celery += 'exception: ' + e.args
 
+    connection.close()  # close django db connection for thread anyway
     return message_from_celery
 
 

@@ -624,7 +624,7 @@ class GenericEquipment(object):
         self.l.debug('Trying to get config from NE')
         if self.equipment_object.vendor == 'Cisco' or self.equipment_object.vendor == 'SNR':
             self.exec_cmd('terminal length 0')  # disable pager
-            cmds = ('show inv', 'show module', 'show run')
+            cmds = ('show inv', 'show module', 'show version', 'show run')
             self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Juniper':
@@ -635,7 +635,7 @@ class GenericEquipment(object):
             self.exec_cmd('screen-width 500')
             self.exec_cmd('y')
             self.exec_cmd('screen-length 0 temporary')
-            cmds = ('display elabel', 'display current-configuration')
+            cmds = ('display elabel', 'display version', 'display current-configuration')
             self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Huawei OLT':
