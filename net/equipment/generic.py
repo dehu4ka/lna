@@ -79,7 +79,7 @@ class GenericEquipment(object):
         self.equipment_object = equipment_object
         # ne_ip is ipaddress.ip_interface, see https://docs.python.org/3/library/ipaddress.html
         self.ip = str(equipment_object.ne_ip.ip)
-        self.l = setup_logger('net.equipment.generic', 0)  # 2 means debug
+        self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
         self.l.debug('Equipment object was created, IP: %s', self.ip)
         self.t = Telnet()
         self.is_connected = False  # telnet connection status
@@ -87,7 +87,7 @@ class GenericEquipment(object):
         self.pager = self.init_pager()
         self.is_logged = False  # authorization status
         self.in_configure_mode = False
-        self.io_timeout = 0.5  # timeout between entering CMD and waiting for output
+        self.io_timeout = 1  # timeout between entering CMD and waiting for output
         self.inside_celery = inside_celery  # is code runs inside Celery
         if equipment_object.credentials:
             self.username = equipment_object.credentials.login
@@ -308,6 +308,7 @@ class GenericEquipment(object):
             elif out[1].re == re_with_prompt:
                 self.l.debug('Got prompt, command execution complete.')
                 break
+        self._print_recv(output)
         return output
 
     def _print_recv(self, input_string):
@@ -632,6 +633,7 @@ class GenericEquipment(object):
             self._get_config_with(cmds)
             return True
         elif self.equipment_object.vendor == 'Huawei':
+            self.io_timeout = 3
             self.exec_cmd('screen-width 500')
             self.exec_cmd('y')
             self.exec_cmd('screen-length 0 temporary')
