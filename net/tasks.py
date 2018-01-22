@@ -17,8 +17,8 @@ import multiprocessing
 from django.db import connection
 
 
-MAX_WORKERS = multiprocessing.cpu_count()*20
-# MAX_WORKERS = 80
+# MAX_WORKERS = multiprocessing.cpu_count()*40
+MAX_WORKERS = 40
 
 log = logging.getLogger(__name__)
 
@@ -200,7 +200,7 @@ def long_job_task(self, *args, **kwargs):
     return {"status": "Long Task completed", "num_of_seconds": RANGE}
 
 
-@app.task(bind=True, time_limit=20*60)
+@app.task(bind=True, time_limit=40*60)
 def celery_scan_nets_with_fping(self, subnets=('',)):
     """
     Task for scan subnets with fping
@@ -294,7 +294,7 @@ def get_config_from(host):
     return message_from_celery
 
 
-@app.task(bind=True, time_limit=20*60)
+@app.task(bind=True, time_limit=60*60)
 def celery_discover_vendor(self, subnets=('',)):
     """
     Does network element discovery and finds logins/passwords from credentials database. Works in Celery
@@ -387,7 +387,7 @@ def celery_discover_vendor(self, subnets=('',)):
     return result
 
 
-@app.task(bind=True, time_limit=20*60)
+@app.task(bind=True, time_limit=60*60)
 def celery_get_config(self, subnets=('',)):
     """
     Does config discovery. Works in Celery. Does only fast devices config fetch.

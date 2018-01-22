@@ -79,7 +79,7 @@ class GenericEquipment(object):
         self.equipment_object = equipment_object
         # ne_ip is ipaddress.ip_interface, see https://docs.python.org/3/library/ipaddress.html
         self.ip = str(equipment_object.ne_ip.ip)
-        self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
+        self.l = setup_logger('net.equipment.generic', 0)  # 2 means debug
         self.l.debug('Equipment object was created, IP: %s', self.ip)
         self.t = Telnet()
         self.is_connected = False  # telnet connection status
@@ -416,7 +416,7 @@ class GenericEquipment(object):
             if out is not b"":
                 self.prompt = b2a(out).splitlines()[-1]  # getting it
             else:
-                self.l.error("Command prompt cant be empty")
+                self.l.error("Command prompt cant be empty at " + self.ip)
                 raise BadCommandPrompt
             if re.search(r'(\*)+', self.prompt, re.MULTILINE):
                 # We have found * (asterisk character) in command prompt. Usually this is masked password.
@@ -428,13 +428,13 @@ class GenericEquipment(object):
                 # self.l.debug(pager)
                 # self.l.debug(out)
                 if re.search(pager, out):
-                    self.l.debug("found pager string! Sending SPACE.")
+                    self.l.debug("found pager string! Sending SPACE at " + self.ip)
                     if not pager_found:  # only once per while loop
                         self.send(' ')  # sending space
                     pager_found = True
             if not pager_found:
                 break  # exiting while loop
-        self.l.debug("Discovered the prompt: " + c.BOLD + c.WHITE + self.prompt + c.RESET)
+        self.l.debug("Discovered the prompt at %s: " % self.ip + c.BOLD + c.WHITE + self.prompt + c.RESET)
         self.is_logged = True
         return self.prompt
 
