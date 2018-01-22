@@ -4,7 +4,7 @@ from django.db import transaction
 from channels import Group
 from net.equipment.generic import GenericEquipment
 from net.tasks import ping_task, login_suggest_task, long_job_task, celery_scan_nets_with_fping, \
-    celery_discover_vendor, celery_get_config
+    celery_discover_vendor, celery_get_config, celery_cmd_runner
 from net.models import Job, JobResult, Scripts, Equipment
 from argus.models import ASTU
 import subprocess
@@ -213,3 +213,8 @@ class HighlightRenderer(mistune.Renderer):
             lexer = NOCCiscoLexer()
         formatter = HtmlFormatter()
         return highlight(code, lexer, formatter)
+
+
+def cmd_to_celery(vendor, ips, cmds):
+    task = celery_cmd_runner.apply_async(kwargs={'vendor': vendor, 'ips': ips, 'cmds': cmds})
+    pass

@@ -480,3 +480,74 @@ def celery_get_config(self, subnets=('',)):
 
     update_job_status(self, state=states.SUCCESS, result=result + '<br />Done.')
     return result
+
+
+def exec_commands_on_host(eq, cmds):
+    result = list()
+    eq.do_login()
+    for cmd in cmds:
+        output = eq.exec_cmd(cmd)
+        result.append({'ip': eq.ip, 'command': cmd, 'result': output})
+    eq.disconnect()
+    return result
+
+
+@app.task(bind=True, time_limit=60*60)
+def celery_cmd_runner(self, **kwargs):
+    # first if exact ip's list is given
+    vendor = kwargs['vendor']
+    cmds = kwargs['cmds'].splitlines()
+    result = list()
+    if kwargs['ips']:
+        log.info("Running cmd runner with IP's list")
+        ips_list = kwargs['ips'].splitlines()
+        """
+        for ip in ips_list:
+            try:
+                eq = GenericEquipment(Equipment.objects.get(ne_ip=ip), inside_celery=True)
+                # check if vendor is correct
+                if eq.equipment_object.vendor != vendor:
+                    log.error("Wrong vendor! %s is %s, not %s" % (ip, eq.equipment_object.vendor, vendor))
+                    continue
+                result.append(exec_commands_on_host(eq, cmds))
+            except Equipment.DoesNotExist:
+                log.error("Equipment with IP=%s doesn't exists!" % ip)
+        """
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures_to_exec_cmds = list()
+            for ip in ips_list:
+                try:
+                    eq = GenericEquipment(Equipment.objects.get(ne_ip=ip), inside_celery=True)
+                    # check if vendor is correct
+                    if eq.equipment_object.vendor != vendor:
+                        log.error("Wrong vendor! %s is %s, not %s" % (ip, eq.equipment_object.vendor, vendor))
+                        continue  # next IP
+                    if not eq.equipment_object.telnet_port_open:
+                        log.error("Telnet port was closed at last discovery at %s!" % ip)
+                        continue
+                    futures_to_exec_cmds.append(executor.submit(exec_commands_on_host, eq, cmds))  # submit task
+                except Equipment.DoesNotExist:
+                    log.error("Equipment with IP=%s doesn't exists!" % ip)
+
+            for future in concurrent.futures.as_completed(futures_to_exec_cmds):
+                try:
+                    result.append(future.result())
+                except Exception as exc:
+                    log.warning('it was an exception: %s' % exc)
+            return result
+    else:
+        log.info("There were no IP in list, trying to get all NE with specific vendor")
+        equipment_objects_by_vendor = Equipment.objects.all().filter(vendor=vendor).filter(telnet_port_open=True)
+        log.info("Total %s NE's" % equipment_objects_by_vendor.count())
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures_to_exec_cmds = list()
+            for obj in equipment_objects_by_vendor:
+                eq = GenericEquipment(obj, inside_celery=True)
+                futures_to_exec_cmds.append(executor.submit(exec_commands_on_host, eq, cmds))  # submit task
+            for future in concurrent.futures.as_completed(futures_to_exec_cmds):
+                try:
+                    result.append(future.result())
+                except Exception as exc:
+                    log.warning('it was an exception: %s' % exc)
+            return result
+

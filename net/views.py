@@ -1,12 +1,14 @@
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
 from django.views.generic import TemplateView, ListView, FormView, DetailView
 from django.core.exceptions import PermissionDenied
 from net.models import Scripts, Job, Equipment, Subnets, EquipmentConfig
-from net.forms import TaskForm, ArchiveTasksForm, SubnetForm, NEListForm, ConfigSearchForm
+from net.forms import TaskForm, ArchiveTasksForm, SubnetForm, NEListForm, ConfigSearchForm, CMDRunnerForm
 from django.contrib import messages
 from net.equipment.generic import GenericEquipment
-from net.lib import celery_job_starter, scan_nets_with_fping, discover_vendor
+from net.lib import celery_job_starter, scan_nets_with_fping, discover_vendor, cmd_to_celery
 from argus.models import Client, ASTU
 import re
 
@@ -127,7 +129,6 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
             form = SubnetForm(self.request.POST)
             if form.is_valid():
                 subnets = form.cleaned_data['subnets'].split("\r\n")  # lists with subnet
-                print(subnets)
                 cast_to_celery = form.cleaned_data['cast_to_celery']  # "Send discovery task to Celery" checkbox
                 discover_task = form.cleaned_data['discover_task']  # Task type
                 context['cast_to_celery'] = cast_to_celery
@@ -344,5 +345,24 @@ class ConfigSearch(LoginRequiredMixin, ListView, FormView):
         context = super(ConfigSearch, self).get_context_data(**kwargs)
         context['row_count'] = self.get_queryset().count()
         context['search'] = self.get_search_term()
+        return context
+
+
+class CMDRunner(LoginRequiredMixin, FormView):
+    template_name = 'net/cmd_runner.html'
+    form_class = CMDRunnerForm
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.method == 'POST':
+            form = CMDRunnerForm(self.request.POST)
+            if form.is_valid():
+                ips = form.cleaned_data['ips_textfield']
+                cmds = form.cleaned_data['commands_list']
+                vendor = form.cleaned_data['vendor_choices']
+                cmd_to_celery(vendor, ips, cmds)
         return context
 

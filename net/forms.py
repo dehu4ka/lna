@@ -1,4 +1,5 @@
 from django import forms
+from net.models import Equipment
 
 
 class TaskForm(forms.Form):
@@ -61,4 +62,28 @@ class ConfigSearchForm(forms.Form):
     search.widget.attrs = {
         'placeholder': 'Search term',
         'class': 'form-control',
+    }
+
+
+class CMDRunnerForm(forms.Form):
+    ips_textfield = forms.CharField(widget=forms.Textarea, required=False, label='')
+    ips_textfield.widget.attrs = {
+        'placeholder': "Enter IP's of equipment or select NE vendor below",
+        'class': 'form-control m-1',
+        # 'size': 15,
+    }
+    distinct_objects = Equipment.objects.all().order_by('vendor').distinct('vendor').filter(vendor__isnull=False)
+    vendor_choices_values_list = list()
+    vendor_choices_values_list.append(('', ''))
+    for obj in distinct_objects:
+        vendor_choices_values_list.append(tuple((obj.vendor, obj.vendor)))
+    vendor_choices_values = tuple(vendor_choices_values_list)
+    vendor_choices = forms.ChoiceField(choices=vendor_choices_values, required=True,
+                                       label='Run task for all NE from this vendor')
+    vendor_choices.widget.attrs = {'class': 'custom-select', }
+    commands_list = forms.CharField(widget=forms.Textarea, required=False, label='')
+    commands_list.widget.attrs = {
+        'placeholder': 'Commands to execute',
+        'class': 'form-control m-1',
+        'rows': 15,
     }

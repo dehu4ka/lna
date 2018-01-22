@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}CMD Runner{% endblock %}
+
+{% block content %}
+    <h2>Run commands</h2>
+    <p>This commands will be send to celery task runner</p>
+    <form method="post" class="form-control">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Submit" class="btn btn-primary">
+    </form>
+{% endblock %}
