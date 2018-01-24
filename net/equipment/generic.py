@@ -300,7 +300,7 @@ class GenericEquipment(object):
             out = self.t.expect(self.pager, timeout=self.io_timeout)
             output += b2a(out[2])
             if out[0] == -1:
-                self.l.warning('Got IO Timeout on %s in exec_cmd()' % self.ip)
+                self.l.warning('Got IO Timeout on %s in exec_cmd(), cmd was: %s' % (self.ip, cmd))
                 break
             if out[1].re != re_with_prompt:  # out[1] is re match object. out[1].re is matched regular expression
                 self.l.debug('sending SPACE in exec_cmd()')
