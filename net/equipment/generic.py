@@ -624,6 +624,7 @@ class GenericEquipment(object):
     def get_config(self):
         self.l.debug('Trying to get config from NE')
         if self.equipment_object.vendor == 'Cisco' or self.equipment_object.vendor == 'SNR':
+            self.io_timeout = 3
             self.exec_cmd('terminal length 0')  # disable pager
             cmds = ('show inv', 'show module', 'show version', 'show run')
             self._get_config_with(cmds)
