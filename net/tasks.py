@@ -609,6 +609,7 @@ def celery_put_syslocation(self,  subnets=('',)):
                     translit_location = translit_location.replace('"', "'")
                     translit_location = translit_location.replace("“", '')
                     translit_location = translit_location.replace("”", '')
+                    translit_location = translit_location.replace("№", 'N')
                     log.debug("%s at %s" % (ip, translit_location))
 
                     eq = GenericEquipment(host, inside_celery=True)
