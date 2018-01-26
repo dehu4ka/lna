@@ -152,6 +152,12 @@ class DiscoverSubnets(LoginRequiredMixin, FormView):
                     else:
                         celery_job_starter(subnets, '1001')
                     pass
+                if discover_task == 'put_syslocation':
+                    if not cast_to_celery:
+                        # only in celery
+                        pass
+                    else:
+                        celery_job_starter(subnets, '1002')
         return context
 
 

@@ -15,6 +15,7 @@ from net.models import Job, JobResult, Equipment, Subnets
 import concurrent.futures
 import multiprocessing
 from django.db import connection
+from transliterate import translit
 
 
 # MAX_WORKERS = multiprocessing.cpu_count()*40
@@ -549,5 +550,79 @@ def celery_cmd_runner(self, **kwargs):
                     result.append(future.result())
                 except Exception as exc:
                     log.warning('it was an exception: %s' % exc)
-            return result
+            return
+
+
+def put_syslocation(eq, translit_location):
+    """
+    Calls put_syslocation from Equipment class
+    :param eq: GenericEquipment object
+    :param translit_location: Location to put in config
+    :return:
+    """
+    eq.do_login()
+    eq.put_syslocation(translit_location)
+    eq.disconnect()
+
+
+@app.task(bind=True, time_limit=60*60)
+def celery_put_syslocation(self,  subnets=('',)):
+    print(subnets)
+    if subnets == ('',) or subnets == ['', ] or subnets is None:
+        log.error('Subnets list can not be empty')
+        return False
+
+    result = list()
+    hosts = list()
+
+    for subnet in subnets:
+        # If we can't find "/" (slash) symbol in subnets, than user had entered the host only, and no subnet
+        log.warning('GOT SUBNET: %s' % subnet)
+        try:
+            if subnet.find("/") == -1:
+                # one host
+                hosts = Equipment.objects.filter(ne_ip=subnet).filter(telnet_port_open=True)
+            else:
+                hosts = Equipment.objects.filter(ne_ip__net_contained=subnet).filter(telnet_port_open=True)
+        except AttributeError:
+            # subnet
+            hosts = Equipment.objects.filter(ne_ip__net_contained=subnet).filter(telnet_port_open=True)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures_to_exec_cmds = list()
+
+            for host in hosts:
+                ip = str(host.ne_ip)
+                try:
+                    astu = ASTU.objects.get(ne_ip=ip)
+                    location = astu.address
+                    translit_location = translit(location, 'ru', reversed=True)
+
+                    # Replacing some characters
+                    # translit_location = translit_location.replace(' ', '_')
+                    # translit_location = translit_location.replace('(', '')
+                    # translit_location = translit_location.replace(')', '')
+                    # translit_location = translit_location.replace('.', '_')
+                    translit_location = translit_location.replace('«', '')
+                    translit_location = translit_location.replace('»', '')
+                    translit_location = translit_location.replace("'", '')
+                    translit_location = translit_location.replace('"', "'")
+                    translit_location = translit_location.replace("“", '')
+                    translit_location = translit_location.replace("”", '')
+                    log.debug("%s at %s" % (ip, translit_location))
+
+                    eq = GenericEquipment(host, inside_celery=True)
+
+                    futures_to_exec_cmds.append(executor.submit(put_syslocation, eq, translit_location))  # submit task
+
+                except ASTU.DoesNotExist:
+                    log.warning("host with IP %s not found in ASTU" % ip)
+
+            for future in concurrent.futures.as_completed(futures_to_exec_cmds):
+                try:
+                    result.append(future.result())
+                except Exception as exc:
+                    log.warning('it was an exception: %s' % exc)
+
+    return result
 

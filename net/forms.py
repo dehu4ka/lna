@@ -17,7 +17,7 @@ class ArchiveTasksForm(forms.Form):
 class SubnetForm(forms.Form):
     subnets = forms.CharField(widget=forms.Textarea, required=False, label='')
     discover_task_choices = (('fping', 'Discover with FPING'), ('vendor', 'Discover Vendor and models'),
-                             ('config', "Get Config from NE's"))
+                             ('config', "Get Config from NE's"), ('put_syslocation', 'Put syslocation from ASTU'))
     subnets.widget.attrs = {
         'placeholder': "Enter the networks to scan with fping in CIDR format\n3 x /24 is OK.\n"
                        "For more network scan, please push checkbox \"send task to Celery\"\n"

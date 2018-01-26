@@ -79,8 +79,8 @@ class GenericEquipment(object):
         self.equipment_object = equipment_object
         # ne_ip is ipaddress.ip_interface, see https://docs.python.org/3/library/ipaddress.html
         self.ip = str(equipment_object.ne_ip.ip)
-        self.l = setup_logger('net.equipment.generic', 2)  # 2 means debug
-        self.l.debug('Equipment object was created, IP: %s', self.ip)
+        self.l = setup_logger('net.equipment.generic', 0)  # 2 means debug
+        # self.l.debug('Equipment object was created, IP: %s', self.ip)
         self.t = Telnet()
         self.is_connected = False  # telnet connection status
         self.prompt = ''  # приглашение командной строки
@@ -661,3 +661,49 @@ class GenericEquipment(object):
         else:
             self.l.warning("Can not get config from unknown vendor!")
             return False
+
+    def put_syslocation(self, location):
+        self.l.info("Trying to configure at %s location: %s" % (self.ip, location))
+        self.io_timeout = 3
+        if self.equipment_object.vendor == 'Huawei':
+            self.exec_cmd('system')
+            self.exec_cmd('snmp-agent sys-info location %s' % location)
+            self.exec_cmd('quit')
+            self.exec_cmd('save')
+            self.exec_cmd('y')
+        elif self.equipment_object.vendor == 'SNR':
+            self.exec_cmd('conf')
+            self.exec_cmd('syslocation %s' % location)
+            self.exec_cmd('end')
+            self.exec_cmd('wr')
+            self.exec_cmd('y')
+        elif self.equipment_object.vendor == 'Cisco':
+            self.exec_cmd('conf t')
+            self.exec_cmd('snmp-server location %s' % location)
+            self.exec_cmd('end')
+            self.exec_cmd('wr mem')
+        elif self.equipment_object.vendor == 'Juniper':
+            self.exec_cmd('configure private')
+            # self._discover_prompt()
+            self.exec_cmd('set snmp location "%s"' % location)
+            self.io_timeout = 60
+            self.exec_cmd('commit and-quit')
+        elif self.equipment_object.vendor == 'Eltex':
+            self.exec_cmd('conf')
+            self.exec_cmd('snmp-server location "%s"' % location)
+            self.exec_cmd('end')
+            self.exec_cmd('wr')
+            self.exec_cmd('y')
+        elif self.equipment_object.vendor == 'Alcatel':
+            self.exec_cmd('configure system location "%s" contact-person rcuss-yamal@ural.rt.ru ' % location)
+            self.exec_cmd('configure system security login-banner "%s %s"' % (location, self.equipment_object.hostname))
+            self.exec_cmd('admin software-mngt shub database save ')
+        elif self.equipment_object.vendor == 'Zyxel':
+            comma_splitted_list = location.split(',')
+            all_except_first = comma_splitted_list[1:]
+            location = ''.join(all_except_first)
+            location = location.replace(' ', '')
+            self.exec_cmd('sys info location "%s"' % location[-30:])
+            self.exec_cmd('config save')
+
+

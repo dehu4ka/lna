@@ -63,3 +63,4 @@ netaddr
 textfsm
 pygments
 mistune
+transliterate
