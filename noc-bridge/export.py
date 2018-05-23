@@ -72,7 +72,7 @@ def get_row_dict_from(eq):
     row['periodic_discovery_telemetry_sample'] = 0
     row['cli_session_policy'] = 'P'
     row['cli_privilege_policy'] = 'P'
-    row['autosegmentation_policy'] = 'P'
+    row['autosegmentation_policy'] = 'p'  # yes, small letter `p`!
     row['event_processing_policy'] = 'P'
     row['tags'] = get_tags_for(eq)
 
